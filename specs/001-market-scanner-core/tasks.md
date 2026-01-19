@@ -24,15 +24,15 @@ description: "Implementation tasks for Market Scanner Core System"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create root directory structure: `src/`, `tools/`, `specs/`, `output/`
-- [ ] T002 Create requirements.txt with dependencies: ccxt, yfinance, pandas, pandas-ta, textblob, feedparser
-- [ ] T003 [P] Create src/__init__.py (empty module marker)
-- [ ] T004 [P] Create tools/__init__.py (empty module marker)
-- [ ] T005 [P] Create output/.gitkeep (ensure output directory exists in git)
-- [ ] T006 [P] Create specs/01_mission.md with hedge fund goals and monthly growth targets
-- [ ] T007 [P] Create specs/02_risk_rules.md with 1:2 R:R ratio and mini-backtest requirements
-- [ ] T008 [P] Create specs/03_data_sources.md listing crypto symbols (BTC, ETH, SOL, BNB, XRP) and macro symbols (GC=F, DX-Y.NYB, ^GSPC)
-- [ ] T009 Create specs/04_strategies.md with initial strategies (Trend Pullback, Pair Trading, Grid) in Pandas Query String format
+- [X] T001 Create root directory structure: `src/`, `tools/`, `specs/`, `output/`
+- [X] T002 Create requirements.txt with dependencies: ccxt, yfinance, pandas, pandas-ta, textblob, feedparser
+- [X] T003 [P] Create src/__init__.py (empty module marker)
+- [X] T004 [P] Create tools/__init__.py (empty module marker)
+- [X] T005 [P] Create output/.gitkeep (ensure output directory exists in git)
+- [X] T006 [P] Create specs/01_mission.md with hedge fund goals and monthly growth targets
+- [X] T007 [P] Create specs/02_risk_rules.md with 1:2 R:R ratio and mini-backtest requirements
+- [X] T008 [P] Create specs/03_data_sources.md listing crypto symbols (BTC, ETH, SOL, BNB, XRP) and macro symbols (GC=F, DX-Y.NYB, ^GSPC)
+- [X] T009 Create specs/04_strategies.md with initial strategies (Trend Pullback, Pair Trading, Grid) in Pandas Query String format
 
 **Verification**: Run `dir src tools specs output` (Windows) and verify all directories exist. Check requirements.txt contains all 6 dependencies.
 
@@ -44,9 +44,9 @@ description: "Implementation tasks for Market Scanner Core System"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T010 Create src/utils.py with `standardize_columns(df)` function to convert all column names to lowercase snake_case (e.g., 'Close' → 'close', 'EMA_200' → 'ema_200')
-- [ ] T011 Add `setup_logging()` function to src/utils.py with INFO level console logging
-- [ ] T012 Add `get_timestamp()` function to src/utils.py returning ISO-8601 formatted current datetime
+- [X] T010 Create src/utils.py with `standardize_columns(df)` function to convert all column names to lowercase snake_case (e.g., 'Close' → 'close', 'EMA_200' → 'ema_200')
+- [X] T011 Add `setup_logging()` function to src/utils.py with INFO level console logging
+- [X] T012 Add `get_timestamp()` function to src/utils.py returning ISO-8601 formatted current datetime
 
 **Verification**: Run `python -c "from src.utils import standardize_columns, setup_logging, get_timestamp; import pandas as pd; df = pd.DataFrame({'Close': [100], 'EMA_200': [95]}); print(standardize_columns(df).columns.tolist())"` and verify output is `['close', 'ema_200']`.
 
@@ -64,17 +64,17 @@ description: "Implementation tasks for Market Scanner Core System"
 
 ### Implementation for User Story 4
 
-- [ ] T013 [P] [US4] Create src/data_loader.py file with module docstring
-- [ ] T014 [US4] Implement `fetch_crypto_data(symbol, days=180)` function in src/data_loader.py using ccxt.binance to fetch OHLCV data
-- [ ] T015 [US4] Add column standardization to `fetch_crypto_data()` using `utils.standardize_columns()` to ensure lowercase snake_case format
-- [ ] T016 [US4] Add error handling to `fetch_crypto_data()` for network failures, API errors, and invalid symbols (log error and return empty DataFrame)
-- [ ] T017 [P] [US4] Implement `fetch_macro_data(symbol, days=180)` function in src/data_loader.py using yfinance to fetch macro data (GC=F, DX-Y.NYB, ^GSPC)
-- [ ] T018 [US4] Add column standardization to `fetch_macro_data()` using `utils.standardize_columns()` to ensure lowercase snake_case format
-- [ ] T019 [US4] Add error handling to `fetch_macro_data()` for network failures and invalid symbols
-- [ ] T020 [P] [US4] Implement `fetch_rss_headlines(feed_urls)` function in src/data_loader.py using feedparser to fetch news headlines from RSS feeds
-- [ ] T021 [US4] Add error handling to `fetch_rss_headlines()` for network failures and invalid feed URLs (return empty list on failure)
-- [ ] T022 [US4] Implement `calculate_sentiment(headlines)` function in src/data_loader.py using TextBlob to compute average polarity score (-1 to +1)
-- [ ] T023 [US4] Add error handling to `calculate_sentiment()` for empty headlines list (return 0.0 as neutral)
+- [X] T013 [P] [US4] Create src/data_loader.py file with module docstring
+- [X] T014 [US4] Implement `fetch_crypto_data(symbol, days=180)` function in src/data_loader.py using ccxt.binance to fetch OHLCV data
+- [X] T015 [US4] Add column standardization to `fetch_crypto_data()` using `utils.standardize_columns()` to ensure lowercase snake_case format
+- [X] T016 [US4] Add error handling to `fetch_crypto_data()` for network failures, API errors, and invalid symbols (log error and return empty DataFrame)
+- [X] T017 [P] [US4] Implement `fetch_macro_data(symbol, days=180)` function in src/data_loader.py using yfinance to fetch macro data (GC=F, DX-Y.NYB, ^GSPC)
+- [X] T018 [US4] Add column standardization to `fetch_macro_data()` using `utils.standardize_columns()` to ensure lowercase snake_case format
+- [X] T019 [US4] Add error handling to `fetch_macro_data()` for network failures and invalid symbols
+- [X] T020 [P] [US4] Implement `fetch_rss_headlines(feed_urls)` function in src/data_loader.py using feedparser to fetch news headlines from RSS feeds
+- [X] T021 [US4] Add error handling to `fetch_rss_headlines()` for network failures and invalid feed URLs (return empty list on failure)
+- [X] T022 [US4] Implement `calculate_sentiment(headlines)` function in src/data_loader.py using TextBlob to compute average polarity score (-1 to +1)
+- [X] T023 [US4] Add error handling to `calculate_sentiment()` for empty headlines list (return 0.0 as neutral)
 
 **Verification for T014-T016**: Run `python -c "from src.data_loader import fetch_crypto_data; df = fetch_crypto_data('BTC/USDT', days=7); assert 'close' in df.columns; assert df.shape[0] > 0; print('✓ Crypto data fetch OK')"`.
 
@@ -94,19 +94,19 @@ description: "Implementation tasks for Market Scanner Core System"
 
 ### Implementation for User Story 3
 
-- [ ] T024 [P] [US3] Create src/analysis.py file with module docstring
-- [ ] T025 [US3] Implement `calculate_indicators(df)` function in src/analysis.py that takes standardized OHLCV DataFrame and adds all indicator columns
-- [ ] T026 [US3] Add RSI calculation to `calculate_indicators()` using `pandas_ta.rsi(df['close'], length=14)` and rename column to 'rsi'
-- [ ] T027 [US3] Add EMA200 calculation to `calculate_indicators()` using `pandas_ta.ema(df['close'], length=200)` and rename column to 'ema_200'
-- [ ] T028 [US3] Add ATR calculation to `calculate_indicators()` using `pandas_ta.atr(df['high'], df['low'], df['close'], length=14)` and rename column to 'atr'
-- [ ] T029 [US3] Add Bollinger Bands calculation to `calculate_indicators()` using `pandas_ta.bbands(df['close'], length=20)` and rename columns to 'bb_lower', 'bb_mid', 'bb_upper'
-- [ ] T030 [US3] Add ADX calculation to `calculate_indicators()` using `pandas_ta.adx(df['high'], df['low'], df['close'], length=14)` and rename column to 'adx'
-- [ ] T031 [US3] Add column standardization pass at end of `calculate_indicators()` using `utils.standardize_columns()` to ensure all new columns are lowercase snake_case
-- [ ] T032 [US3] Add error handling to `calculate_indicators()` for insufficient data (< 200 rows for EMA200) and return original DataFrame with warning log
-- [ ] T033 [P] [US3] Implement `merge_macro_data(crypto_df, macro_dfs)` function in src/analysis.py to merge macro columns into crypto DataFrame with forward fill for weekends
-- [ ] T034 [US3] Add reindexing logic to `merge_macro_data()` using `pd.merge_asof()` to align crypto (24/7) with macro (M-F) timestamps
-- [ ] T035 [US3] Add forward fill (`ffill()`) logic to `merge_macro_data()` for weekend gaps in macro data
-- [ ] T036 [US3] Add column prefixing to `merge_macro_data()` for macro columns (e.g., 'close' → 'gold_close', 'dxy_close') to avoid name collisions
+- [X] T024 [P] [US3] Create src/analysis.py file with module docstring
+- [X] T025 [US3] Implement `calculate_indicators(df)` function in src/analysis.py that takes standardized OHLCV DataFrame and adds all indicator columns
+- [X] T026 [US3] Add RSI calculation to `calculate_indicators()` using `pandas_ta.rsi(df['close'], length=14)` and rename column to 'rsi'
+- [X] T027 [US3] Add EMA200 calculation to `calculate_indicators()` using `pandas_ta.ema(df['close'], length=200)` and rename column to 'ema_200'
+- [X] T028 [US3] Add ATR calculation to `calculate_indicators()` using `pandas_ta.atr(df['high'], df['low'], df['close'], length=14)` and rename column to 'atr'
+- [X] T029 [US3] Add Bollinger Bands calculation to `calculate_indicators()` using `pandas_ta.bbands(df['close'], length=20)` and rename columns to 'bb_lower', 'bb_mid', 'bb_upper'
+- [X] T030 [US3] Add ADX calculation to `calculate_indicators()` using `pandas_ta.adx(df['high'], df['low'], df['close'], length=14)` and rename column to 'adx'
+- [X] T031 [US3] Add column standardization pass at end of `calculate_indicators()` using `utils.standardize_columns()` to ensure all new columns are lowercase snake_case
+- [X] T032 [US3] Add error handling to `calculate_indicators()` for insufficient data (< 200 rows for EMA200) and return original DataFrame with warning log
+- [X] T033 [P] [US3] Implement `merge_macro_data(crypto_df, macro_dfs)` function in src/analysis.py to merge macro columns into crypto DataFrame with forward fill for weekends
+- [X] T034 [US3] Add reindexing logic to `merge_macro_data()` using `pd.merge_asof()` to align crypto (24/7) with macro (M-F) timestamps
+- [X] T035 [US3] Add forward fill (`ffill()`) logic to `merge_macro_data()` for weekend gaps in macro data
+- [X] T036 [US3] Add column prefixing to `merge_macro_data()` for macro columns (e.g., 'close' → 'gold_close', 'dxy_close') to avoid name collisions
 
 **Verification for T025-T032**: Run `python -c "from src.analysis import calculate_indicators; from src.data_loader import fetch_crypto_data; df = fetch_crypto_data('BTC/USDT', days=30); result = calculate_indicators(df); assert all(col in result.columns for col in ['rsi', 'ema_200', 'atr', 'bb_lower', 'adx']); print('✓ All indicators present:', result.columns.tolist())"`.
 
@@ -128,42 +128,42 @@ description: "Implementation tasks for Market Scanner Core System"
 
 #### Subtask Group 1: Core Backtester Structure
 
-- [ ] T037 [P] [US2] Create src/backtester.py file with module docstring explaining backtest logic
-- [ ] T038 [US2] Implement `find_signal_dates(df, condition_str)` function in src/backtester.py to find dates where `df.query(condition_str)` returns True
-- [ ] T039 [US2] Add validation to `find_signal_dates()` to check if condition_str is valid Pandas query syntax (try/except on df.query())
-- [ ] T040 [US2] Add logic to `find_signal_dates()` to return last 3 True indices (using `df.index[mask][-3:]`)
-- [ ] T041 [US2] Add handling for < 3 signals case in `find_signal_dates()` (return all found signals with warning log)
+- [X] T037 [P] [US2] Create src/backtester.py file with module docstring explaining backtest logic
+- [X] T038 [US2] Implement `find_signal_dates(df, condition_str)` function in src/backtester.py to find dates where `df.query(condition_str)` returns True
+- [X] T039 [US2] Add validation to `find_signal_dates()` to check if condition_str is valid Pandas query syntax (try/except on df.query())
+- [X] T040 [US2] Add logic to `find_signal_dates()` to return last 3 True indices (using `df.index[mask][-3:]`)
+- [X] T041 [US2] Add handling for < 3 signals case in `find_signal_dates()` (return all found signals with warning log)
 
 **Verification for T037-T041**: Run `python -c "from src.backtester import find_signal_dates; import pandas as pd; df = pd.DataFrame({'rsi': [20, 35, 25, 40, 28], 'close': [100, 105, 102, 110, 108]}); dates = find_signal_dates(df, 'rsi < 30'); print('✓ Found', len(dates), 'signals'); assert len(dates) <= 3"`.
 
 #### Subtask Group 2: Trade Simulation Logic
 
-- [ ] T042 [US2] Implement `simulate_trade(df, entry_idx, stop_loss_pct=0.02, take_profit_pct=0.04)` function in src/backtester.py
-- [ ] T043 [US2] Add logic to `simulate_trade()` to get entry price from `df.loc[entry_idx, 'close']`
-- [ ] T044 [US2] Add logic to `simulate_trade()` to calculate stop loss price: `entry_price * (1 - stop_loss_pct)`
-- [ ] T045 [US2] Add logic to `simulate_trade()` to calculate take profit price: `entry_price * (1 + take_profit_pct)`
-- [ ] T046 [US2] Add forward iteration logic to `simulate_trade()` to scan bars after entry_idx checking if low <= stop_loss or high >= take_profit
-- [ ] T047 [US2] Add early exit logic to `simulate_trade()` for insufficient future data (return {"result": "Open", "pnl_percent": 0.0, "duration_bars": 0})
-- [ ] T048 [US2] Add result packaging to `simulate_trade()` returning dict with keys: result ("TP"/"SL"/"Open"), pnl_percent (float), duration_bars (int)
+- [X] T042 [US2] Implement `simulate_trade(df, entry_idx, stop_loss_pct=0.02, take_profit_pct=0.04)` function in src/backtester.py
+- [X] T043 [US2] Add logic to `simulate_trade()` to get entry price from `df.loc[entry_idx, 'close']`
+- [X] T044 [US2] Add logic to `simulate_trade()` to calculate stop loss price: `entry_price * (1 - stop_loss_pct)`
+- [X] T045 [US2] Add logic to `simulate_trade()` to calculate take profit price: `entry_price * (1 + take_profit_pct)`
+- [X] T046 [US2] Add forward iteration logic to `simulate_trade()` to scan bars after entry_idx checking if low <= stop_loss or high >= take_profit
+- [X] T047 [US2] Add early exit logic to `simulate_trade()` for insufficient future data (return {"result": "Open", "pnl_percent": 0.0, "duration_bars": 0})
+- [X] T048 [US2] Add result packaging to `simulate_trade()` returning dict with keys: result ("TP"/"SL"/"Open"), pnl_percent (float), duration_bars (int)
 
 **Verification for T042-T048**: Run `python -c "from src.backtester import simulate_trade; import pandas as pd; import numpy as np; df = pd.DataFrame({'close': [100, 105, 110, 95, 90], 'high': [102, 107, 112, 97, 92], 'low': [98, 103, 108, 93, 88]}); result = simulate_trade(df, 0, stop_loss_pct=0.05, take_profit_pct=0.10); print('✓ Trade result:', result); assert result['result'] in ['TP', 'SL', 'Open']"`.
 
 #### Subtask Group 3: Main Backtest Function
 
-- [ ] T049 [US2] Implement `backtest_strategy(df, condition_str, stop_loss_pct=0.02, take_profit_pct=0.04)` function in src/backtester.py
-- [ ] T050 [US2] Add call to `find_signal_dates(df, condition_str)` in `backtest_strategy()` to get list of signal indices
-- [ ] T051 [US2] Add loop in `backtest_strategy()` to call `simulate_trade()` for each signal date
-- [ ] T052 [US2] Add result aggregation in `backtest_strategy()` to build list of dicts matching backtest-schema.json format
-- [ ] T053 [US2] Add JSON serialization to `backtest_strategy()` with date formatting (ISO-8601 strings)
-- [ ] T054 [US2] Add error handling to `backtest_strategy()` for empty DataFrame or invalid condition_str (return empty list with error log)
+- [X] T049 [US2] Implement `backtest_strategy(df, condition_str, stop_loss_pct=0.02, take_profit_pct=0.04)` function in src/backtester.py
+- [X] T050 [US2] Add call to `find_signal_dates(df, condition_str)` in `backtest_strategy()` to get list of signal indices
+- [X] T051 [US2] Add loop in `backtest_strategy()` to call `simulate_trade()` for each signal date
+- [X] T052 [US2] Add result aggregation in `backtest_strategy()` to build list of dicts matching backtest-schema.json format
+- [X] T053 [US2] Add JSON serialization to `backtest_strategy()` with date formatting (ISO-8601 strings)
+- [X] T054 [US2] Add error handling to `backtest_strategy()` for empty DataFrame or invalid condition_str (return empty list with error log)
 
 **Verification for T049-T054**: Run `python -c "from src.backtester import backtest_strategy; from src.data_loader import fetch_crypto_data; from src.analysis import calculate_indicators; df = fetch_crypto_data('BTC/USDT', days=30); df = calculate_indicators(df); results = backtest_strategy(df, 'rsi < 30', stop_loss_pct=0.02, take_profit_pct=0.04); import json; print('✓ Backtest results:', json.dumps(results, indent=2))"`.
 
 #### Subtask Group 4: Standalone Testing
 
-- [ ] T055 [US2] Add `if __name__ == '__main__':` block to src/backtester.py with example usage
-- [ ] T056 [US2] Add command-line argument parsing to backtester.py for --symbol, --condition, --days parameters using argparse
-- [ ] T057 [US2] Add full pipeline test in __main__ block: fetch data → calculate indicators → run backtest → print JSON results
+- [X] T055 [US2] Add `if __name__ == '__main__':` block to src/backtester.py with example usage
+- [X] T056 [US2] Add command-line argument parsing to backtester.py for --symbol, --condition, --days parameters using argparse
+- [X] T057 [US2] Add full pipeline test in __main__ block: fetch data → calculate indicators → run backtest → print JSON results
 
 **Verification for T055-T057**: Run `python src/backtester.py --symbol BTC/USDT --condition "rsi < 30" --days 90` and verify JSON output with signal_date, result, pnl_percent keys.
 
@@ -179,13 +179,13 @@ description: "Implementation tasks for Market Scanner Core System"
 
 ### Implementation for User Story 5
 
-- [ ] T058 [P] [US5] Create src/strategy_loader.py file with module docstring
-- [ ] T059 [US5] Implement `load_strategies()` function in src/strategy_loader.py to read specs/04_strategies.md file
-- [ ] T060 [US5] Add Markdown parsing logic to `load_strategies()` to extract strategy blocks (name, type, condition, params)
-- [ ] T061 [US5] Add JSON/YAML parsing alternative if strategies are defined in structured format within specs/04_strategies.md
-- [ ] T062 [US5] Add validation to `load_strategies()` to check condition strings are valid (test with empty DataFrame.query())
-- [ ] T063 [US5] Add return format to `load_strategies()` as list of dicts: `[{"name": str, "type": str, "condition": str, "params": dict}]`
-- [ ] T064 [US5] Add error handling to `load_strategies()` for missing file or parse errors (return empty list with error log)
+- [X] T058 [P] [US5] Create src/strategy_loader.py file with module docstring
+- [X] T059 [US5] Implement `load_strategies()` function in src/strategy_loader.py to read specs/04_strategies.md file
+- [X] T060 [US5] Add Markdown parsing logic to `load_strategies()` to extract strategy blocks (name, type, condition, params)
+- [X] T061 [US5] Add JSON/YAML parsing alternative if strategies are defined in structured format within specs/04_strategies.md
+- [X] T062 [US5] Add validation to `load_strategies()` to check condition strings are valid (test with empty DataFrame.query())
+- [X] T063 [US5] Add return format to `load_strategies()` as list of dicts: `[{"name": str, "type": str, "condition": str, "params": dict}]`
+- [X] T064 [US5] Add error handling to `load_strategies()` for missing file or parse errors (return empty list with error log)
 
 **Verification for T058-T064**: Run `python -c "from src.strategy_loader import load_strategies; strategies = load_strategies(); print('✓ Loaded', len(strategies), 'strategies'); print(strategies[0] if strategies else 'No strategies found')"`.
 
@@ -205,70 +205,70 @@ description: "Implementation tasks for Market Scanner Core System"
 
 #### Subtask Group 1: Market Scanner Structure
 
-- [ ] T065 [P] [US1] Create tools/market_scanner.py file with module docstring and CLI description
-- [ ] T066 [US1] Add import statements to tools/market_scanner.py for all src modules (data_loader, analysis, backtester, strategy_loader, utils)
-- [ ] T067 [US1] Implement `main()` function in tools/market_scanner.py with high-level workflow steps as comments
-- [ ] T068 [US1] Add setup_logging() call at start of `main()` function
+- [X] T065 [P] [US1] Create tools/market_scanner.py file with module docstring and CLI description
+- [X] T066 [US1] Add import statements to tools/market_scanner.py for all src modules (data_loader, analysis, backtester, strategy_loader, utils)
+- [X] T067 [US1] Implement `main()` function in tools/market_scanner.py with high-level workflow steps as comments
+- [X] T068 [US1] Add setup_logging() call at start of `main()` function
 
 #### Subtask Group 2: Data Collection Step
 
-- [ ] T069 [US1] Add crypto data collection loop to `main()` in tools/market_scanner.py for symbols from specs/03_data_sources.md (BTC/USDT, ETH/USDT, SOL/USDT, BNB/USDT, XRP/USDT)
-- [ ] T070 [US1] Add macro data collection loop to `main()` in tools/market_scanner.py for symbols GC=F, DX-Y.NYB, ^GSPC
-- [ ] T071 [US1] Add RSS feed collection to `main()` in tools/market_scanner.py with sentiment calculation
-- [ ] T072 [US1] Add progress logging after each data fetch (e.g., "✓ Fetched BTC/USDT data")
-- [ ] T073 [US1] Add error recovery logic to continue scanning even if one symbol fails (log error and skip)
+- [X] T069 [US1] Add crypto data collection loop to `main()` in tools/market_scanner.py for symbols from specs/03_data_sources.md (BTC/USDT, ETH/USDT, SOL/USDT, BNB/USDT, XRP/USDT)
+- [X] T070 [US1] Add macro data collection loop to `main()` in tools/market_scanner.py for symbols GC=F, DX-Y.NYB, ^GSPC
+- [X] T071 [US1] Add RSS feed collection to `main()` in tools/market_scanner.py with sentiment calculation
+- [X] T072 [US1] Add progress logging after each data fetch (e.g., "✓ Fetched BTC/USDT data")
+- [X] T073 [US1] Add error recovery logic to continue scanning even if one symbol fails (log error and skip)
 
 **Verification for T065-T073**: Run `python tools/market_scanner.py` and verify console logs show data fetching progress. Interrupt before completion to test partial execution.
 
 #### Subtask Group 3: Analysis Step
 
-- [ ] T074 [US1] Add technical indicator calculation loop to `main()` in tools/market_scanner.py calling `calculate_indicators()` for each crypto DataFrame
-- [ ] T075 [US1] Add macro data merging to `main()` in tools/market_scanner.py calling `merge_macro_data()` for each crypto DataFrame
-- [ ] T076 [US1] Add validation step after analysis to check for NaN values in critical columns (rsi, ema_200) and log warnings
-- [ ] T077 [US1] Add progress logging after analysis (e.g., "✓ Calculated indicators for BTC/USDT")
+- [X] T074 [US1] Add technical indicator calculation loop to `main()` in tools/market_scanner.py calling `calculate_indicators()` for each crypto DataFrame
+- [X] T075 [US1] Add macro data merging to `main()` in tools/market_scanner.py calling `merge_macro_data()` for each crypto DataFrame
+- [X] T076 [US1] Add validation step after analysis to check for NaN values in critical columns (rsi, ema_200) and log warnings
+- [X] T077 [US1] Add progress logging after analysis (e.g., "✓ Calculated indicators for BTC/USDT")
 
 **Verification for T074-T077**: Add `breakpoint()` after analysis step and inspect DataFrames to ensure all indicator columns are present.
 
 #### Subtask Group 4: Signal Scanning Step
 
-- [ ] T078 [US1] Add strategy loading to `main()` in tools/market_scanner.py calling `load_strategies()`
-- [ ] T079 [US1] Add nested loop to `main()` to scan each strategy against each crypto DataFrame
-- [ ] T080 [US1] Add signal detection logic using `df.query(strategy['condition'])` to check if current row matches strategy condition
-- [ ] T081 [US1] Add signal collection to list when detected: `{"asset": symbol, "strategy": name, "timestamp": current_date, "entry_price": close}`
-- [ ] T082 [US1] Add progress logging for each strategy scan (e.g., "↻ Scanning Trend Pullback on BTC/USDT")
+- [X] T078 [US1] Add strategy loading to `main()` in tools/market_scanner.py calling `load_strategies()`
+- [X] T079 [US1] Add nested loop to `main()` to scan each strategy against each crypto DataFrame
+- [X] T080 [US1] Add signal detection logic using `df.query(strategy['condition'])` to check if current row matches strategy condition
+- [X] T081 [US1] Add signal collection to list when detected: `{"asset": symbol, "strategy": name, "timestamp": current_date, "entry_price": close}`
+- [X] T082 [US1] Add progress logging for each strategy scan (e.g., "↻ Scanning Trend Pullback on BTC/USDT")
 
 **Verification for T078-T082**: Add debug print of `found_signals` list and verify format matches expected structure.
 
 #### Subtask Group 5: Backtest Verification Step
 
-- [ ] T083 [US1] Add backtest loop to `main()` in tools/market_scanner.py for each found signal
-- [ ] T084 [US1] Add call to `backtest_strategy()` for each signal with strategy condition and parameters
-- [ ] T085 [US1] Add backtest results attachment to signal dict: `signal['proof'] = backtest_results`
-- [ ] T086 [US1] Add error handling for backtest failures (log error and mark signal proof as "N/A")
-- [ ] T087 [US1] Add progress logging for backtest completion (e.g., "✓ Verified BTC/USDT Trend Pullback: 2/3 wins")
+- [X] T083 [US1] Add backtest loop to `main()` in tools/market_scanner.py for each found signal
+- [X] T084 [US1] Add call to `backtest_strategy()` for each signal with strategy condition and parameters
+- [X] T085 [US1] Add backtest results attachment to signal dict: `signal['proof'] = backtest_results`
+- [X] T086 [US1] Add error handling for backtest failures (log error and mark signal proof as "N/A")
+- [X] T087 [US1] Add progress logging for backtest completion (e.g., "✓ Verified BTC/USDT Trend Pullback: 2/3 wins")
 
 **Verification for T083-T087**: Add debug print of signals with proof data and verify backtest results are attached.
 
 #### Subtask Group 6: Report Generation Step
 
-- [ ] T088 [US1] Implement `generate_markdown_report(signals, sentiment_score, timestamp)` function in tools/market_scanner.py
-- [ ] T089 [US1] Add Markdown header generation to `generate_markdown_report()`: title, generation timestamp, sentiment score
-- [ ] T090 [US1] Add loop in `generate_markdown_report()` to create a section for each signal with asset, strategy, entry price
-- [ ] T091 [US1] Add backtest proof section to each signal with table of last 3 signals (date, result, PnL%)
-- [ ] T092 [US1] Add summary section to report with total signals found, overall win rate from backtests
-- [ ] T093 [US1] Add "No Signals Found" section if signals list is empty
-- [ ] T094 [US1] Add file writing logic to save report to `output/market_snapshot.md`
-- [ ] T095 [US1] Add call to `generate_markdown_report()` in `main()` function
+- [X] T088 [US1] Implement `generate_markdown_report(signals, sentiment_score, timestamp)` function in tools/market_scanner.py
+- [X] T089 [US1] Add Markdown header generation to `generate_markdown_report()`: title, generation timestamp, sentiment score
+- [X] T090 [US1] Add loop in `generate_markdown_report()` to create a section for each signal with asset, strategy, entry price
+- [X] T091 [US1] Add backtest proof section to each signal with table of last 3 signals (date, result, PnL%)
+- [X] T092 [US1] Add summary section to report with total signals found, overall win rate from backtests
+- [X] T093 [US1] Add "No Signals Found" section if signals list is empty
+- [X] T094 [US1] Add file writing logic to save report to `output/market_snapshot.md`
+- [X] T095 [US1] Add call to `generate_markdown_report()` in `main()` function
 
 **Verification for T088-T095**: Run `python tools/market_scanner.py` and open `output/market_snapshot.md` in text editor. Verify Markdown formatting is correct and contains signal data.
 
 #### Subtask Group 7: Error Handling & Finalization
 
-- [ ] T096 [US1] Add try-except wrapper around entire `main()` function to catch unexpected errors
-- [ ] T097 [US1] Add final logging message on success: "✓ Market scan complete. Report saved to output/market_snapshot.md"
-- [ ] T098 [US1] Add execution time tracking (start/end timestamps) and log total duration
-- [ ] T099 [US1] Add `if __name__ == '__main__':` block calling `main()`
-- [ ] T100 [US1] Add command-line argument parsing for optional flags: --symbols, --strategies, --output-path (using argparse)
+- [X] T096 [US1] Add try-except wrapper around entire `main()` function to catch unexpected errors
+- [X] T097 [US1] Add final logging message on success: "✓ Market scan complete. Report saved to output/market_snapshot.md"
+- [X] T098 [US1] Add execution time tracking (start/end timestamps) and log total duration
+- [X] T099 [US1] Add `if __name__ == '__main__':` block calling `main()`
+- [X] T100 [US1] Add command-line argument parsing for optional flags: --symbols, --strategies, --output-path (using argparse)
 
 **Verification for T096-T100**: Run `python tools/market_scanner.py` and verify:
 1. Script completes without errors

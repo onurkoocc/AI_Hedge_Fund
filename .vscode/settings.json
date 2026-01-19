@@ -4,11 +4,24 @@
         "speckit.specify": true,
         "speckit.plan": true,
         "speckit.tasks": true,
-        "speckit.implement": true
+        "speckit.implement": true,
+        "analyze-btc": true,
+        "analyze-eth": true,
+        "analyze-btc-eth": true
     },
+    "chat.promptFilesLocations": [
+        ".github/prompts"
+    ],
+    "chat.agentFilesLocations": [
+        ".github/agents"
+    ],
     "chat.tools.terminal.autoApprove": {
         ".specify/scripts/bash/": true,
         ".specify/scripts/powershell/": true
-    }
+    },
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python-envs.pythonProjects": []
 }
 
