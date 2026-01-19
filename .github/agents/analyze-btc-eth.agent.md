@@ -1,6 +1,6 @@
 ---
 name: analyze-btc-eth
-description: "BTC/USDT ve ETH/USDT birlikte analiz ve pozisyon önerisi"
+description: "BTC/USDT ve ETH/USDT birlikte analiz ve pozisyon önerisi (LONG & SHORT)"
 ---
 
 # BTC/USDT & ETH/USDT Kombine Piyasa Analizi
@@ -16,7 +16,7 @@ python tools/market_scanner.py --symbols BTC/USDT ETH/USDT --days 180
 
 3. **Anayasa ve risk kurallarını kontrol et**:
    - [specs/02_risk_rules.md](specs/02_risk_rules.md) - 1:2 R:R kuralı
-   - [specs/04_strategies.md](specs/04_strategies.md) - Pair Trading stratejisi
+   - [specs/04_strategies.md](specs/04_strategies.md) - Tüm stratejiler (LONG & SHORT)
    - [.specify/memory/constitution.md](.specify/memory/constitution.md) - Temel prensipler
 
 4. **Karşılaştırmalı Analiz**:
@@ -24,12 +24,22 @@ python tools/market_scanner.py --symbols BTC/USDT ETH/USDT --days 180
    - BTC/ETH oranını değerlendir (dominans)
    - Hangisi daha güçlü/zayıf? (Pair Trading fırsatı var mı?)
    - Korelasyon analizi yap
-   - Her biri için ayrı pozisyon önerisi sun
+   - **HEM LONG HEM SHORT perspektifinden** değerlendir
 
-5. **Strateji Seçimi**:
-   - Her ikisi de aynı yönde mi? → Tek pozisyon öner
-   - Farklı yönlerde mi? → Pair Trading düşün
-   - Belirsizlik mi? → Hedge veya Grid stratejisi öner
+5. **Strateji Seçimi** (Decision Matrix):
+
+   | Fiyat vs EMA 200 | RSI Aralığı | ADX | Önerilen Aksiyon |
+   |------------------|-------------|-----|------------------|
+   | ÜSTÜNDE | < 35 | > 25 | **LONG** (Trend Pullback) |
+   | ÜSTÜNDE | > 70 | > 25 | BEKLE (aşırı alım) |
+   | ALTINDA | > 60 | > 25 | **SHORT** (Trend Continuation) |
+   | ALTINDA | < 35 | > 25 | BEKLE (aşırı satım) |
+   | HERHANGİ | 40-60 | < 20 | Grid Trading veya BEKLE |
+
+6. **Her Varlık İçin**:
+   - LONG fırsatını değerlendir
+   - SHORT fırsatını değerlendir
+   - Hangisi daha uygun veya ikisi de mi bekle?
 
 ## Çıktı Formatı
 
@@ -37,7 +47,7 @@ python tools/market_scanner.py --symbols BTC/USDT ETH/USDT --days 180
 ## 📊 BTC/USDT & ETH/USDT Kombine Analiz
 
 **Tarih**: [tarih]
-**Piyasa Durumu**: [Trend / Range / Belirsiz]
+**Piyasa Durumu**: [Yükseliş Trendi / Düşüş Trendi / Range / Belirsiz]
 
 ### Karşılaştırmalı Teknik Analiz
 
@@ -47,7 +57,9 @@ python tools/market_scanner.py --symbols BTC/USDT ETH/USDT --days 180
 | RSI (14) | X | X | Hangisi daha güçlü? |
 | EMA 200 | Üstünde/Altında | Üstünde/Altında | Trend uyumu |
 | ADX | X | X | Trend gücü |
-| Bollinger | Pozisyon | Pozisyon | - |
+| Bollinger Pozisyon | %X | %X | Bant içi konum |
+| 7 Gün Değişim | %X | %X | Kısa vade momentum |
+| 30 Gün Değişim | %X | %X | Orta vade trend |
 
 ### BTC/ETH Oranı
 - Mevcut: X.XX
@@ -64,38 +76,98 @@ Ortalama Skor: X.XX (Bullish/Bearish/Nötr)
 
 ---
 
-## 🎯 Pozisyon Önerileri
+## 🟢 LONG Pozisyon Değerlendirmesi
 
-### Öneri 1: BTC/USDT
-**Karar**: [LONG / SHORT / BEKLE]
-- Giriş: $X
-- Stop Loss: $X (%X)
-- Take Profit: $X (%X)
-- R:R Oranı: X:1
+### BTC/USDT LONG
+**Koşullar**:
+- Fiyat > EMA 200: [✅/❌]
+- RSI < 35: [✅/❌]
+- ADX > 25: [✅/❌]
 
-### Öneri 2: ETH/USDT
-**Karar**: [LONG / SHORT / BEKLE]
-- Giriş: $X
-- Stop Loss: $X (%X)
-- Take Profit: $X (%X)
-- R:R Oranı: X:1
+**Karar**: [LONG / BEKLE]
+| Parametre | Değer |
+|-----------|-------|
+| Giriş | $X |
+| Stop Loss | $X (%X) |
+| Take Profit | $X (%X) |
+| R:R Oranı | X:1 |
 
-### Alternatif: Pair Trading (Opsiyonel)
-Eğer BTC ve ETH farklı güçte ise:
-- **LONG**: [Güçlü olan]
-- **SHORT**: [Zayıf olan]
-- Net Exposure: Hedge
+### ETH/USDT LONG
+**Koşullar**:
+- Fiyat > EMA 200: [✅/❌]
+- RSI < 35: [✅/❌]
+- ADX > 25: [✅/❌]
+
+**Karar**: [LONG / BEKLE]
+| Parametre | Değer |
+|-----------|-------|
+| Giriş | $X |
+| Stop Loss | $X (%X) |
+| Take Profit | $X (%X) |
+| R:R Oranı | X:1 |
+
+---
+
+## 🔴 SHORT Pozisyon Değerlendirmesi
+
+### BTC/USDT SHORT
+**Koşullar**:
+- Fiyat < EMA 200: [✅/❌]
+- RSI > 60: [✅/❌]
+- ADX > 25: [✅/❌]
+
+**Karar**: [SHORT / BEKLE]
+| Parametre | Değer |
+|-----------|-------|
+| Giriş | $X (bounce bekle) |
+| Stop Loss | $X (%X) |
+| Take Profit | $X (%X) |
+| R:R Oranı | X:1 |
+
+### ETH/USDT SHORT
+**Koşullar**:
+- Fiyat < EMA 200: [✅/❌]
+- RSI > 60: [✅/❌]
+- ADX > 25: [✅/❌]
+
+**Karar**: [SHORT / BEKLE]
+| Parametre | Değer |
+|-----------|-------|
+| Giriş | $X (bounce bekle) |
+| Stop Loss | $X (%X) |
+| Take Profit | $X (%X) |
+| R:R Oranı | X:1 |
+
+---
+
+## 🔄 Pair Trading Değerlendirmesi (Opsiyonel)
+
+**30 Günlük Performans Farkı**: X%
+- Yeterli fark (>5%): [EVET/HAYIR]
+- Öneri: [LONG güçlü / SHORT zayıf] veya [Uygun değil]
 
 ---
 
 ## 📈 Backtest Kanıtları
 
-### BTC/USDT Son 3 Sinyal
+### LONG Sinyalleri (Trend Pullback)
+**BTC/USDT**:
 | Tarih | Sonuç | P&L |
 |-------|-------|-----|
 | ... | TP/SL | %X |
 
-### ETH/USDT Son 3 Sinyal
+**ETH/USDT**:
+| Tarih | Sonuç | P&L |
+|-------|-------|-----|
+| ... | TP/SL | %X |
+
+### SHORT Sinyalleri (Trend Continuation)
+**BTC/USDT**:
+| Tarih | Sonuç | P&L |
+|-------|-------|-----|
+| ... | TP/SL | %X |
+
+**ETH/USDT**:
 | Tarih | Sonuç | P&L |
 |-------|-------|-----|
 | ... | TP/SL | %X |
@@ -104,12 +176,22 @@ Eğer BTC ve ETH farklı güçte ise:
 
 ## 📋 Özet Tavsiye
 
-| Varlık | Aksiyon | Güven | Öncelik |
-|--------|---------|-------|---------|
-| BTC/USDT | [LONG/SHORT/BEKLE] | [Yüksek/Orta/Düşük] | [1/2] |
-| ETH/USDT | [LONG/SHORT/BEKLE] | [Yüksek/Orta/Düşük] | [1/2] |
+| Varlık | LONG | SHORT | Aktif Sinyal | Güven |
+|--------|------|-------|--------------|-------|
+| BTC/USDT | [Uygun/Bekle] | [Uygun/Bekle] | [LONG/SHORT/YOK] | [Yüksek/Orta/Düşük] |
+| ETH/USDT | [Uygun/Bekle] | [Uygun/Bekle] | [LONG/SHORT/YOK] | [Yüksek/Orta/Düşük] |
+
+### 🚨 Alarm Seviyeleri
+
+**LONG Fırsatı İçin İzle:**
+- BTC: $X (EMA 200 üzeri kapanış)
+- ETH: $X (EMA 200 üzeri kapanış)
+
+**SHORT Fırsatı İçin İzle:**
+- BTC: $X - $X arası (BB Mid bounce + RSI 55-65)
+- ETH: $X - $X arası (BB Mid bounce + RSI 55-65)
 
 **Toplam Pozisyon Sayısı**: X/5 (Aylık limit: 5 Sniper işlem)
 
-**Risk Uyarısı**: Bu analiz yatırım tavsiyesi değildir.
+**Risk Uyarısı**: Bu analiz yatırım tavsiyesi değildir. 1:2 R:R kuralı sağlanmadan işlem yapılmamalıdır.
 ```

@@ -112,14 +112,106 @@ Each strategy is defined with:
 
 ---
 
+## SHORT Strategies
+
+### 5. Trend Continuation Short
+
+**Type**: Trend Following (Bearish)  
+**Market Condition**: Confirmed downtrend with relief rally
+
+**Entry Condition**:
+```python
+"close < ema_200 and rsi > 60 and adx > 25"
+```
+
+**Logic**:
+- Price below 200 EMA confirms downtrend
+- RSI above 60 indicates overbought bounce in downtrend
+- ADX above 25 confirms strong trend (bearish momentum)
+
+**Parameters**:
+- Stop Loss: Above EMA 200 (1% buffer)
+- Take Profit: BB Lower band or 2x ATR below entry
+- Position Size: 2% of capital at risk
+
+**Backtest Performance**: 80-100% win rate (Dec 2025 data)
+
+**Macro Filter**: DXY rising (dollar strength is crypto negative)
+
+---
+
+### 6. RSI Overbought Short (Downtrend)
+
+**Type**: Mean Reversion in Trend  
+**Market Condition**: Downtrend with extreme overbought bounce
+
+**Entry Condition**:
+```python
+"close < ema_200 and rsi > 70"
+```
+
+**Logic**:
+- Price below EMA 200 confirms bearish trend
+- RSI above 70 indicates extreme overbought (unsustainable bounce)
+- High probability reversal back to trend
+
+**Parameters**:
+- Stop Loss: Above recent swing high or EMA 200
+- Take Profit: BB Mid or BB Lower
+- Position Size: 2% of capital at risk
+
+**Backtest Performance**: 100% win rate (limited signals)
+
+---
+
+### 7. BB Upper Rejection Short
+
+**Type**: Resistance Rejection  
+**Market Condition**: Downtrend with price near upper Bollinger Band
+
+**Entry Condition**:
+```python
+"close < ema_200 and close > bb_upper * 0.98 and rsi > 55"
+```
+
+**Logic**:
+- Price below EMA 200 confirms downtrend
+- Price near/above BB upper indicates overextension
+- RSI above 55 shows momentum weakening
+
+**Warning**: Lower win rate - use with caution
+
+**Parameters**:
+- Stop Loss: Above BB Upper + 1 ATR
+- Take Profit: BB Mid
+- Position Size: 1% of capital at risk (reduced due to lower win rate)
+
+---
+
 ## Strategy Selection Logic
 
 The market scanner evaluates all strategies for each asset. Priority order:
 
+### LONG Strategies:
 1. **Primary**: Trend Pullback (highest win rate in backtests)
 2. **Secondary**: Breakout Continuation (high R:R but lower frequency)
 3. **Hedge**: Pair Trading (only when market uncertain)
 4. **Fallback**: Grid Trading (low return but consistent in chop)
+
+### SHORT Strategies:
+1. **Primary**: Trend Continuation Short (80-100% win rate in downtrends)
+2. **Secondary**: RSI Overbought Short (extreme bounces only)
+3. **Caution**: BB Upper Rejection (lower win rate, reduced position)
+
+### Decision Matrix:
+
+| Price vs EMA 200 | RSI Range | ADX | Recommended Action |
+|------------------|-----------|-----|-------------------|
+| ABOVE | < 35 | > 25 | **LONG** (Trend Pullback) |
+| ABOVE | > 70 | > 25 | WAIT (overbought in uptrend) |
+| BELOW | > 60 | > 25 | **SHORT** (Trend Continuation) |
+| BELOW | < 35 | > 25 | WAIT (oversold in downtrend) |
+| ANY | 40-60 | < 20 | Grid Trading or WAIT |
 
 ## Mini-Backtest Parameters
 
