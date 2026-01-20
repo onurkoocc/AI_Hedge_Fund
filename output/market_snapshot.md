@@ -1,8 +1,8 @@
 # Market Snapshot Report
 
-**Generated**: 2026-01-20T10:10:50  
-**Sentiment Score**: +0.022 😐 Neutral  
-**Assets Scanned**: BTC/USDT, ETH/USDT
+**Generated**: 2026-01-20T11:18:44  
+**Sentiment Score**: +0.030 😐 Neutral  
+**Assets Scanned**: BTC/USDT
 
 ---
 
