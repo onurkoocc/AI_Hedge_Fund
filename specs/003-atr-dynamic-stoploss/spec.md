@@ -37,8 +37,8 @@ Trader olarak, dinamik stop-loss kullanılsa bile 1:2 minimum R:R oranının kor
 
 **Acceptance Scenarios**:
 
-1. **Given** dinamik stop-loss hesaplandı (örn: %3), **When** R:R kontrolü yapılır, **Then** take-profit en az %6 olarak ayarlanır
-2. **Given** R:R < 2.0 olacak bir setup, **When** sinyal değerlendirilir, **Then** sinyal "R:R yetersiz" olarak reddedilir veya TP ayarlanır
+1. **Given** dinamik stop-loss hesaplandı (örn: %3), **When** R:R kontrolü yapılır, **Then** hesaplanan R:R oranı rapora eklenir
+2. **Given** R:R < 2.0 olacak bir setup, **When** sinyal değerlendirilir, **Then** sinyal üretilir ve "⚠️ Low R:R" uyarısı eklenir, trader nihai kararı verir
 
 ---
 
@@ -75,7 +75,7 @@ Trader olarak, dinamik stop-loss sisteminin backtest motoruyla tam uyumlu çalı
 ### Edge Cases
 
 - ATR değeri sıfır veya çok küçükse ne olur? → Minimum stop-loss yüzdesi (%1) uygulanmalı
-- ATR değeri aşırı yüksekse ne olur? → Maximum stop-loss yüzdesi (%5) ile sınırlanmalı
+- ATR değeri aşırı yüksekse (stop > %5) ne olur? → Sinyal reddedilmeli ("Volatility too high")
 - Veri yetersizliğinden ATR hesaplanamazsa ne olur? → Varsayılan sabit stop-loss (%2) kullanılmalı
 
 ## Requirements
@@ -83,13 +83,15 @@ Trader olarak, dinamik stop-loss sisteminin backtest motoruyla tam uyumlu çalı
 ### Functional Requirements
 
 - **FR-001**: Sistem, her sinyal için ATR değerini kullanarak dinamik stop-loss hesaplamalı
-- **FR-002**: Stop-loss formülü: `entry_price ± (ATR × multiplier)` (long için -, short için +)
+- **FR-002**: Stop-loss formülü: `entry_price ± (ATR × multiplier)` (long için -, short için +). Değer sinyal anında bir kez hesaplanır ve sabitlenir.
 - **FR-003**: Varsayılan ATR çarpanı 1.5 olmalı
-- **FR-004**: Minimum stop-loss %1, maksimum %5 ile sınırlanmalı
-- **FR-005**: R:R oranı her zaman minimum 2.0 olmalı, take-profit dinamik stop'a göre ayarlanmalı
-- **FR-006**: Strateji tanımlarında ATR çarpanı parametresi eklenebilmeli
-- **FR-007**: Backtest motoru dinamik stop-loss mantığını desteklemeli
-- **FR-008**: Market snapshot raporunda dinamik stop seviyeleri gösterilmeli
+- **FR-004**: Stop-loss mesafesi %1'in altında ise %1'e yuvarlanmalı; hesaplanan stop mesafesi %5'i aşarsa sinyal reddedilmeli (Too Volatile)
+- **FR-005**: R:R oranı hesaplanmalı; R:R < 2.0 ise sinyal "⚠️ Low R:R" uyarısıyla işaretlenmeli (trader kararına bırakılır)
+- **FR-006**: Take-Profit seviyesi, hesaplanan dinamik stop mesafesinin en az 2 katı (varsayılan R:R) mesafeye yerleştirilmeli. Formül: `TP = Entry + (StopDistance * 2.0)`
+- **FR-007**: Strateji tanımlarında ATR çarpanı parametresi eklenebilmeli
+- **FR-008**: Backtest motoru dinamik stop-loss mantığını desteklemeli
+- **FR-009**: Market snapshot raporunda dinamik stop seviyeleri gösterilmeli
+- **FR-010**: ATR hesaplaması, sinyali üreten stratejinin kullandığı timeframe'den yapılmalı
 
 ### Key Entities
 
@@ -105,9 +107,20 @@ Trader olarak, dinamik stop-loss sisteminin backtest motoruyla tam uyumlu çalı
 - **SC-003**: Hiçbir sinyal 2.0'ın altında R:R oranıyla üretilmemeli
 - **SC-004**: Yüksek volatilite dönemlerinde (%20+ ATR artışı) stop-loss otomatik genişlemeli
 
+## Clarifications
+
+### Session 2026-01-20
+
+- Q: ATR hesaplaması hangi timeframe'den alınmalı? → A: Strateji timeframe'i ile aynı (strateji 1h ise ATR 1h, 4h ise ATR 4h)
+- Q: R:R < 2.0 olduğunda sistem nasıl davranmalı? → A: Uyarı ile kabul et (sinyal üretilir ama "Low R:R" uyarısı eklenir, trader karar verir)
+- Q: Stop-loss seviyesi dinamik olarak güncellenir mi (trailing) yoksa girişte sabit mi kalır? → A: Girişte sabitlenir (Fixed at Entry)
+- Q: ATR bazlı stop-loss %5'i aşarsa ne yapılmalı? → A: Sinyal reddedilir (aşırı volatilite nedeniyle işlem açılmaz)
+- Q: Take-Profit nasıl hesaplanmalı? → A: Dinamik ve stop mesafesine bağlı (Take-Profit = Entry + (StopDistance * TargetRR))
+
 ## Assumptions
 
 - ATR(14) mevcut analysis.py'de zaten hesaplanıyor
+- ATR hesaplaması, sinyali üreten stratejinin kullandığı timeframe ile aynı timeframe'den yapılır (tutarlılık için)
 - Strateji dosyası (04_strategies.md) güncellenerek yeni parametre eklenebilir
 - Kullanıcılar başlangıçta varsayılan çarpanları kullanacak
 

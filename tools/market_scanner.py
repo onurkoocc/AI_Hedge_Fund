@@ -26,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from src.utils import setup_logging, get_timestamp
 from src.data_loader import fetch_crypto_data, fetch_macro_data, fetch_rss_headlines, calculate_sentiment
-from src.analysis import calculate_indicators, merge_macro_data
+from src.analysis import calculate_indicators, merge_macro_data, calculate_risk_levels
 from src.backtester import backtest_strategy
 from src.strategy_loader import load_strategies
 
@@ -187,15 +187,40 @@ def main():
                     matches = current_row.query(strategy['condition'])
                     
                     if not matches.empty:
-                        # Signal found!
+                        # Signal found! Calculate dynamic risk levels
+                        entry_price = float(df['close'].iloc[-1])
+                        atr_value = float(df['atr'].iloc[-1]) if 'atr' in df.columns and not pd.isna(df['atr'].iloc[-1]) else 0.0
+                        
+                        # T014: Calculate dynamic stop/TP using ATR
+                        risk_levels = calculate_risk_levels(
+                            entry_price=entry_price,
+                            atr=atr_value,
+                            side='long',  # Default to long for now
+                            atr_multiplier=strategy['params'].get('atr_multiplier', 1.5),
+                            min_rr=2.0
+                        )
+                        
+                        # T016: Skip signal if volatility is too high
+                        if risk_levels['status'] == 'VOLATILITY_TOO_HIGH':
+                            logger.warning(f"  ⚠ SIGNAL SKIPPED: {symbol} - Volatility too high (stop > 5%)")
+                            continue
+                        
                         signal = {
                             "asset": symbol,
                             "strategy": strategy['name'],
                             "strategy_type": strategy['type'],
                             "timestamp": df.index[-1].strftime('%Y-%m-%d %H:%M:%S'),
-                            "entry_price": float(df['close'].iloc[-1]),
+                            "entry_price": entry_price,
                             "condition": strategy['condition'],
                             "params": strategy['params'],
+                            # T015: Add dynamic risk levels to signal
+                            "atr_value": atr_value,
+                            "atr_multiplier": strategy['params'].get('atr_multiplier', 1.5),
+                            "stop_loss_price": risk_levels['stop_loss'],
+                            "take_profit_price": risk_levels['take_profit'],
+                            "stop_pct": risk_levels['stop_pct'],
+                            "rr_ratio": risk_levels['rr_ratio'],
+                            "risk_status": risk_levels['status'],
                             # Add new indicator values
                             "macd": float(df['macd'].iloc[-1]) if 'macd' in df.columns and not pd.isna(df['macd'].iloc[-1]) else None,
                             "macd_signal": float(df['macd_signal'].iloc[-1]) if 'macd_signal' in df.columns and not pd.isna(df['macd_signal'].iloc[-1]) else None,
@@ -205,7 +230,7 @@ def main():
                         }
                         
                         found_signals.append(signal)
-                        logger.info(f"  ✓ SIGNAL FOUND: {symbol} @ ${signal['entry_price']:.2f}")
+                        logger.info(f"  ✓ SIGNAL FOUND: {symbol} @ ${entry_price:.2f} | ATR: {atr_value:.2f} | Stop: ${risk_levels['stop_loss']:.2f} ({risk_levels['stop_pct']:.2%}) | TP: ${risk_levels['take_profit']:.2f} | R:R: {risk_levels['rr_ratio']:.2f}")
                 
                 except Exception as e:
                     logger.error(f"  ✗ Error scanning {strategy['name']} on {symbol}: {e}")
@@ -227,12 +252,12 @@ def main():
                 
                 logger.info(f"Verifying {symbol} {signal['strategy']}...")
                 
-                # Run backtest for this strategy
+                # T032: Run backtest with dynamic stop-loss
                 backtest_results = backtest_strategy(
                     df,
                     signal['condition'],
-                    stop_loss_pct=signal['params']['stop_loss_pct'],
-                    take_profit_pct=signal['params']['take_profit_pct']
+                    use_dynamic_stop=True,
+                    atr_multiplier=signal.get('atr_multiplier', 1.5)
                 )
                 
                 # Attach proof to signal
@@ -332,17 +357,32 @@ def generate_markdown_report(
         report += f"## 🎯 Trading Signals ({len(signals)} Found)\n\n"
         
         for i, signal in enumerate(signals, 1):
-            # Check if signal meets 1:2 R:R ratio
-            rr_ratio = signal['params']['take_profit_pct'] / signal['params']['stop_loss_pct']
+            # T015: Display dynamic risk levels
+            rr_ratio = signal.get('rr_ratio', 0)
             rr_check = "✅" if rr_ratio >= 2.0 else "⚠️"
+            risk_status = signal.get('risk_status', 'OK')
+            status_emoji = "⚠️" if risk_status == 'LOW_RR' else "✅"
             
             report += f"### Signal {i}: {signal['asset']} - {signal['strategy']}\n\n"
             report += f"- **Type**: {signal['strategy_type']}\n"
             report += f"- **Entry Price**: ${signal['entry_price']:.2f}\n"
             report += f"- **Timestamp**: {signal['timestamp']}\n"
-            report += f"- **Stop Loss**: {signal['params']['stop_loss_pct'] * 100:.1f}%\n"
-            report += f"- **Take Profit**: {signal['params']['take_profit_pct'] * 100:.1f}%\n"
-            report += f"- **R:R Ratio**: {rr_check} {rr_ratio:.1f}:1\n"
+            
+            # Dynamic stop-loss info
+            if 'atr_value' in signal:
+                report += f"- **ATR**: {signal['atr_value']:.2f} (Multiplier: {signal.get('atr_multiplier', 1.5)})\n"
+                report += f"- **Dynamic Stop Loss**: ${signal['stop_loss_price']:.2f} ({signal['stop_pct'] * 100:.2f}%)\n"
+                report += f"- **Dynamic Take Profit**: ${signal['take_profit_price']:.2f}\n"
+                report += f"- **R:R Ratio**: {status_emoji} {rr_ratio:.2f}:1"
+                if risk_status == 'LOW_RR':
+                    report += " (⚠️ Low R:R Warning)"
+                report += "\n"
+            else:
+                # Fallback to old format if no ATR data
+                report += f"- **Stop Loss**: {signal['params']['stop_loss_pct'] * 100:.1f}%\n"
+                report += f"- **Take Profit**: {signal['params']['take_profit_pct'] * 100:.1f}%\n"
+                report += f"- **R:R Ratio**: {rr_check} {rr_ratio:.1f}:1\n"
+            
             report += f"- **Win Rate (Last 3)**: {signal['win_rate']:.0f}%\n"
             
             # Add new indicator values

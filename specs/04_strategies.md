@@ -29,6 +29,7 @@ Each strategy is defined with:
 - Stop Loss: 2% below entry
 - Take Profit: 5% above entry (2.5:1 R:R)
 - Position Size: 2% of capital at risk
+- ATR Multiplier: 1.5 (allows wider stops in volatile markets)
 
 **Macro Filter**: DXY declining (dollar weakness is crypto positive)
 
@@ -54,6 +55,7 @@ Each strategy is defined with:
 - Stop Loss: 3% relative divergence
 - Take Profit: 6% relative convergence (2:1 R:R)
 - Position Size: 1.5% per leg (3% total)
+- ATR Multiplier: 1.0 (tighter stops for pair trades)
 
 **Macro Filter**: S&P 500 volatility > 20 (uncertain traditional markets)
 
@@ -83,6 +85,7 @@ Each strategy is defined with:
 - Stop Loss: Below BB lower band (invalidation of range)
 - Take Profit: Opposite band (e.g., buy at lower, sell at upper)
 - Position Size: 0.5% per grid level (2.5% max exposure)
+- ATR Multiplier: 1.0 (tight stops for range-bound trading)
 
 **Macro Filter**: Gold stable (no major risk events)
 
@@ -107,6 +110,7 @@ Each strategy is defined with:
 - Stop Loss: Below BB upper band (retest failure)
 - Take Profit: 1.5x ATR above breakout (volatility-adjusted)
 - Position Size: 2.5% of capital at risk
+- ATR Multiplier: 2.0 (wider stops for momentum breakouts)
 
 **Macro Filter**: Positive sentiment score (> 0.3) and S&P rising
 
@@ -133,6 +137,7 @@ Each strategy is defined with:
 - Stop Loss: Above EMA 200 (1% buffer)
 - Take Profit: BB Lower band or 2x ATR below entry
 - Position Size: 2% of capital at risk
+- ATR Multiplier: 1.5 (allow for volatility in short positions)
 
 **Backtest Performance**: 80-100% win rate (Dec 2025 data)
 
@@ -159,6 +164,7 @@ Each strategy is defined with:
 - Stop Loss: Above recent swing high or EMA 200
 - Take Profit: BB Mid or BB Lower
 - Position Size: 2% of capital at risk
+- ATR Multiplier: 1.0 (tight stops for mean reversion)
 
 **Backtest Performance**: 100% win rate (limited signals)
 
@@ -185,6 +191,7 @@ Each strategy is defined with:
 - Stop Loss: Above BB Upper + 1 ATR
 - Take Profit: BB Mid
 - Position Size: 1% of capital at risk (reduced due to lower win rate)
+- ATR Multiplier: 1.0 (tight stops for resistance rejection)
 
 ---
 

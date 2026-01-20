@@ -52,7 +52,8 @@ def load_strategies(specs_dir: str = "specs") -> List[Dict[str, Any]]:
         strategies = []
         
         # Extract each strategy section (starts with "### " followed by a number)
-        strategy_pattern = r'### \d+\.\s+(.+?)\n\n\*\*Type\*\*:\s*(.+?)\n.*?\n\n\*\*Entry Condition\*\*:\s*\n```python\n"(.+?)"\n```.*?\n\*\*Parameters\*\*:\s*\n-\s+Stop Loss:\s*(\d+)%.*?\n-\s+Take Profit:\s*(\d+\.?\d*)%.*?\n-\s+Position Size:\s*([\d.]+)%'
+        # Updated pattern to optionally capture ATR Multiplier
+        strategy_pattern = r'### \d+\.\s+(.+?)\n\n\*\*Type\*\*:\s*(.+?)\n.*?\n\n\*\*Entry Condition\*\*:\s*\n```python\n"(.+?)"\n```.*?\n\*\*Parameters\*\*:\s*\n-\s+Stop Loss:\s*(\d+)%.*?\n-\s+Take Profit:\s*(\d+\.?\d*)%.*?\n-\s+Position Size:\s*([\d.]+)%(?:.*?\n-\s+ATR Multiplier:\s*([\d.]+))?'
         
         matches = re.finditer(strategy_pattern, content, re.DOTALL)
         
@@ -63,6 +64,7 @@ def load_strategies(specs_dir: str = "specs") -> List[Dict[str, Any]]:
             stop_loss = float(match.group(4)) / 100  # Convert to decimal
             take_profit = float(match.group(5)) / 100
             position_size = float(match.group(6)) / 100
+            atr_multiplier = float(match.group(7)) if match.group(7) else 1.5  # Default 1.5
             
             # Validate condition string
             if not _validate_condition(condition):
@@ -76,12 +78,13 @@ def load_strategies(specs_dir: str = "specs") -> List[Dict[str, Any]]:
                 "params": {
                     "stop_loss_pct": stop_loss,
                     "take_profit_pct": take_profit,
-                    "position_size_pct": position_size
+                    "position_size_pct": position_size,
+                    "atr_multiplier": atr_multiplier  # T024: Added
                 }
             }
             
             strategies.append(strategy)
-            logger.info(f"  ✓ Loaded strategy: {name} ({strategy_type})")
+            logger.info(f"  ✓ Loaded strategy: {name} ({strategy_type}) [ATR Multiplier: {atr_multiplier}]")
         
         if not strategies:
             logger.warning("No strategies parsed from file")
