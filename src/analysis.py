@@ -10,7 +10,7 @@ import pandas as pd
 from ta.momentum import RSIIndicator, StochRSIIndicator
 from ta.trend import EMAIndicator, ADXIndicator, MACD
 from ta.volatility import AverageTrueRange, BollingerBands
-from typing import Dict
+from typing import Dict, Any
 from .utils import standardize_columns
 
 logger = logging.getLogger(__name__)
@@ -193,3 +193,143 @@ def merge_macro_data(crypto_df: pd.DataFrame, macro_dfs: Dict[str, pd.DataFrame]
     except Exception as e:
         logger.error(f"Error merging macro data: {e}")
         return crypto_df
+
+
+def calculate_risk_levels(
+    entry_price: float,
+    atr: float,
+    side: str,
+    atr_multiplier: float = 1.5,
+    min_rr: float = 2.0
+) -> Dict[str, Any]:
+    """
+    Calculate dynamic stop-loss and take-profit levels based on ATR.
+    
+    Implements FR-001 through FR-006 from specs/003-atr-dynamic-stoploss/spec.md
+    
+    Args:
+        entry_price: Price at signal generation (must be > 0)
+        atr: ATR value at signal time (must be >= 0)
+        side: Trade direction - 'long' or 'short'
+        atr_multiplier: Multiplier for ATR (default: 1.5)
+        min_rr: Minimum Risk/Reward ratio (default: 2.0)
+        
+    Returns:
+        Dictionary with keys:
+        - stop_loss: Absolute price for stop loss
+        - take_profit: Absolute price for take profit
+        - stop_distance: Absolute price distance from entry to stop
+        - stop_pct: Stop distance as percentage (0.01 = 1%)
+        - rr_ratio: Risk/Reward ratio
+        - status: 'OK', 'LOW_RR', 'VOLATILITY_TOO_HIGH', or 'VOLATILITY_UNDEFINED'
+    """
+    try:
+        # T003: Input validation
+        if entry_price <= 0:
+            logger.error(f"Invalid entry_price: {entry_price} (must be > 0)")
+            return {
+                'stop_loss': entry_price,
+                'take_profit': entry_price,
+                'stop_distance': 0,
+                'stop_pct': 0,
+                'rr_ratio': 0,
+                'status': 'VOLATILITY_UNDEFINED'
+            }
+        
+        if atr < 0:
+            logger.error(f"Invalid ATR: {atr} (must be >= 0)")
+            return {
+                'stop_loss': entry_price,
+                'take_profit': entry_price,
+                'stop_distance': 0,
+                'stop_pct': 0,
+                'rr_ratio': 0,
+                'status': 'VOLATILITY_UNDEFINED'
+            }
+        
+        if side not in ['long', 'short']:
+            logger.error(f"Invalid side: {side} (must be 'long' or 'short')")
+            return {
+                'stop_loss': entry_price,
+                'take_profit': entry_price,
+                'stop_distance': 0,
+                'stop_pct': 0,
+                'rr_ratio': 0,
+                'status': 'VOLATILITY_UNDEFINED'
+            }
+        
+        # T004: Handle ATR = 0 or very small (edge case)
+        if atr == 0:
+            logger.warning("ATR is zero, using minimum stop-loss of 1%")
+            stop_distance = entry_price * 0.01  # Minimum 1%
+            status = 'VOLATILITY_UNDEFINED'
+        else:
+            # FR-002: Calculate stop distance using ATR
+            stop_distance = atr * atr_multiplier
+            status = 'OK'
+        
+        # Calculate stop loss percentage
+        stop_pct = stop_distance / entry_price
+        
+        # T005: FR-004 - Enforce minimum 1% stop-loss
+        if stop_pct < 0.01:
+            logger.info(f"Stop distance {stop_pct:.4%} < 1%, adjusting to 1%")
+            stop_pct = 0.01
+            stop_distance = entry_price * 0.01
+        
+        # T006: FR-004 - Enforce maximum 5% stop-loss
+        if stop_pct > 0.05:
+            logger.warning(f"Stop distance {stop_pct:.4%} > 5%, marking as VOLATILITY_TOO_HIGH")
+            return {
+                'stop_loss': entry_price * (0.95 if side == 'long' else 1.05),
+                'take_profit': entry_price * (1.10 if side == 'long' else 0.90),
+                'stop_distance': entry_price * 0.05,
+                'stop_pct': 0.05,
+                'rr_ratio': 2.0,
+                'status': 'VOLATILITY_TOO_HIGH'
+            }
+        
+        # FR-002: Calculate stop loss price (long: subtract, short: add)
+        if side == 'long':
+            stop_loss = entry_price - stop_distance
+            # FR-006: Take profit is stop_distance * min_rr above entry
+            take_profit = entry_price + (stop_distance * min_rr)
+        else:  # short
+            stop_loss = entry_price + stop_distance
+            take_profit = entry_price - (stop_distance * min_rr)
+        
+        # Calculate take profit distance
+        tp_distance = abs(take_profit - entry_price)
+        
+        # T007: FR-005 - Calculate R:R ratio
+        rr_ratio = tp_distance / stop_distance if stop_distance > 0 else 0
+        
+        # T008: FR-005 - Check if R:R is below minimum
+        if rr_ratio < min_rr:
+            logger.warning(f"R:R ratio {rr_ratio:.2f} < {min_rr}, marking as LOW_RR")
+            status = 'LOW_RR'
+        
+        # T009: Log edge cases
+        if status != 'OK':
+            logger.info(f"Risk calculation: Entry=${entry_price:.2f}, ATR={atr:.2f}, "
+                       f"Stop%={stop_pct:.2%}, R:R={rr_ratio:.2f}, Status={status}")
+        
+        return {
+            'stop_loss': stop_loss,
+            'take_profit': take_profit,
+            'stop_distance': stop_distance,
+            'stop_pct': stop_pct,
+            'rr_ratio': rr_ratio,
+            'status': status
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculating risk levels: {e}")
+        return {
+            'stop_loss': entry_price,
+            'take_profit': entry_price,
+            'stop_distance': 0,
+            'stop_pct': 0,
+            'rr_ratio': 0,
+            'status': 'VOLATILITY_UNDEFINED'
+        }

@@ -56,19 +56,25 @@ def find_signal_dates(df: pd.DataFrame, condition_str: str) -> List[int]:
 def simulate_trade(
     df: pd.DataFrame, 
     entry_idx: int, 
-    stop_loss_pct: float = 0.02, 
-    take_profit_pct: float = 0.04
+    stop_loss_pct: float = None,
+    take_profit_pct: float = None,
+    stop_loss_price: float = None,
+    take_profit_price: float = None
 ) -> Dict[str, Any]:
     """
     Simulate a single trade from entry to exit (TP or SL).
+    
+    Supports both percentage-based (legacy) and absolute price-based (dynamic) stop/TP.
     
     This implements the 1:2 Risk/Reward rule from specs/02_risk_rules.md
     
     Args:
         df: DataFrame with OHLCV data
         entry_idx: Index position where trade entry occurs
-        stop_loss_pct: Stop loss as percentage below entry (e.g., 0.02 = 2%)
-        take_profit_pct: Take profit as percentage above entry (e.g., 0.04 = 4%)
+        stop_loss_pct: Stop loss as percentage below entry (e.g., 0.02 = 2%) [LEGACY]
+        take_profit_pct: Take profit as percentage above entry (e.g., 0.04 = 4%) [LEGACY]
+        stop_loss_price: Absolute stop loss price (overrides stop_loss_pct if provided)
+        take_profit_price: Absolute take profit price (overrides take_profit_pct if provided)
         
     Returns:
         Dictionary with keys:
@@ -85,20 +91,32 @@ def simulate_trade(
         # Get entry price
         entry_price = df.iloc[entry_idx]['close']
         
-        # Calculate stop loss and take profit levels
-        stop_loss_price = entry_price * (1 - stop_loss_pct)
-        take_profit_price = entry_price * (1 + take_profit_pct)
+        # T010-T013: Calculate stop loss and take profit levels
+        # Priority: Use absolute prices if provided, otherwise fall back to percentages
+        if stop_loss_price is not None and take_profit_price is not None:
+            # Dynamic mode: use provided absolute prices
+            sl_price = stop_loss_price
+            tp_price = take_profit_price
+        elif stop_loss_pct is not None and take_profit_pct is not None:
+            # Legacy mode: calculate from percentages
+            sl_price = entry_price * (1 - stop_loss_pct)
+            tp_price = entry_price * (1 + take_profit_pct)
+        else:
+            # Default fallback: 2% SL, 4% TP (1:2 R:R)
+            logger.warning("No stop/TP parameters provided, using default 2%/4%")
+            sl_price = entry_price * 0.98
+            tp_price = entry_price * 1.04
         
-        logger.debug(f"Entry: ${entry_price:.2f}, SL: ${stop_loss_price:.2f}, TP: ${take_profit_price:.2f}")
+        logger.debug(f"Entry: ${entry_price:.2f}, SL: ${sl_price:.2f}, TP: ${tp_price:.2f}")
         
         # Scan forward bars to see which level is hit first
         for i in range(entry_idx + 1, len(df)):
             bar = df.iloc[i]
             
             # Check if stop loss hit (price went below SL)
-            if bar['low'] <= stop_loss_price:
+            if bar['low'] <= sl_price:
                 duration = i - entry_idx
-                pnl = -stop_loss_pct  # Negative return
+                pnl = (sl_price - entry_price) / entry_price  # Can be negative
                 logger.debug(f"SL hit at bar {i}, duration: {duration}, PnL: {pnl:.2%}")
                 return {
                     "result": "SL",
@@ -107,9 +125,9 @@ def simulate_trade(
                 }
             
             # Check if take profit hit (price went above TP)
-            if bar['high'] >= take_profit_price:
+            if bar['high'] >= tp_price:
                 duration = i - entry_idx
-                pnl = take_profit_pct  # Positive return
+                pnl = (tp_price - entry_price) / entry_price  # Positive return
                 logger.debug(f"TP hit at bar {i}, duration: {duration}, PnL: {pnl:.2%}")
                 return {
                     "result": "TP",
@@ -133,28 +151,39 @@ def simulate_trade(
 def backtest_strategy(
     df: pd.DataFrame, 
     condition_str: str, 
-    stop_loss_pct: float = 0.02, 
-    take_profit_pct: float = 0.04
+    stop_loss_pct: float = None,
+    take_profit_pct: float = None,
+    use_dynamic_stop: bool = True,
+    atr_multiplier: float = 1.5
 ) -> List[Dict[str, Any]]:
     """
     Backtest a strategy by finding last 3 signals and simulating each trade.
     
+    Supports both legacy percentage-based and dynamic ATR-based risk management.
+    
     This is the main "proof engine" function.
     
     Args:
-        df: DataFrame with OHLCV and indicators
+        df: DataFrame with OHLCV and indicators (must include 'atr' column for dynamic mode)
         condition_str: Strategy condition (Pandas query string)
-        stop_loss_pct: Stop loss percentage (default: 2%)
-        take_profit_pct: Take profit percentage (default: 4%, giving 2:1 R:R)
+        stop_loss_pct: Stop loss percentage (default: None, uses dynamic if available)
+        take_profit_pct: Take profit percentage (default: None, uses dynamic if available)
+        use_dynamic_stop: Use ATR-based dynamic stop-loss (default: True)
+        atr_multiplier: Multiplier for ATR in dynamic mode (default: 1.5)
         
     Returns:
-        List of backtest results matching backtest-schema.json format
+        List of backtest results matching backtest-schema.json format with risk parameters
     """
     try:
         # Validate inputs
         if df.empty:
             logger.error("Cannot backtest on empty DataFrame")
             return []
+        
+        # Check if dynamic stop is possible
+        if use_dynamic_stop and 'atr' not in df.columns:
+            logger.warning("ATR column missing, falling back to percentage-based stop")
+            use_dynamic_stop = False
         
         # Find signal dates
         signal_indices = find_signal_dates(df, condition_str)
@@ -163,24 +192,74 @@ def backtest_strategy(
             logger.info("No signals found to backtest")
             return []
         
-        logger.info(f"Found {len(signal_indices)} signals, simulating trades...")
+        logger.info(f"Found {len(signal_indices)} signals, simulating trades (Dynamic: {use_dynamic_stop})...")
         
-        # Simulate each signal
+        # T029-T031: Simulate each signal with dynamic risk levels
         results = []
         for idx in signal_indices:
-            # Get signal date
+            # Get signal date and entry price
             signal_date = df.index[idx]
+            entry_price = df.iloc[idx]['close']
             
-            # Simulate trade
-            trade_result = simulate_trade(df, idx, stop_loss_pct, take_profit_pct)
-            
-            # Build result dict
-            result = {
-                "signal_date": signal_date.strftime('%Y-%m-%d %H:%M:%S'),
-                "result": trade_result["result"],
-                "pnl_percent": round(trade_result["pnl_percent"] * 100, 2),  # Convert to percentage
-                "duration_bars": trade_result["duration_bars"]
-            }
+            # T029: Calculate dynamic risk levels at signal time
+            if use_dynamic_stop:
+                atr_value = df.iloc[idx]['atr'] if not pd.isna(df.iloc[idx]['atr']) else 0.0
+                
+                # Import here to avoid circular dependency
+                from .analysis import calculate_risk_levels
+                
+                risk_levels = calculate_risk_levels(
+                    entry_price=entry_price,
+                    atr=atr_value,
+                    side='long',  # Default assumption for backtest
+                    atr_multiplier=atr_multiplier,
+                    min_rr=2.0
+                )
+                
+                # T030: Use dynamic prices
+                sl_price = risk_levels['stop_loss']
+                tp_price = risk_levels['take_profit']
+                
+                # Simulate trade with absolute prices
+                trade_result = simulate_trade(
+                    df, idx, 
+                    stop_loss_price=sl_price, 
+                    take_profit_price=tp_price
+                )
+                
+                # T031: Store risk parameters in result
+                result = {
+                    "signal_date": signal_date.strftime('%Y-%m-%d %H:%M:%S'),
+                    "result": trade_result["result"],
+                    "pnl_percent": round(trade_result["pnl_percent"] * 100, 2),
+                    "duration_bars": trade_result["duration_bars"],
+                    # T031: Add dynamic risk parameters
+                    "entry_price": round(entry_price, 2),
+                    "atr_value": round(atr_value, 2),
+                    "atr_multiplier": atr_multiplier,
+                    "stop_loss_price": round(sl_price, 2),
+                    "take_profit_price": round(tp_price, 2),
+                    "stop_pct": round(risk_levels['stop_pct'] * 100, 2),
+                    "rr_ratio": round(risk_levels['rr_ratio'], 2),
+                    "risk_status": risk_levels['status']
+                }
+            else:
+                # Legacy mode: use percentages
+                sl_pct = stop_loss_pct if stop_loss_pct else 0.02
+                tp_pct = take_profit_pct if take_profit_pct else 0.04
+                
+                trade_result = simulate_trade(
+                    df, idx, 
+                    stop_loss_pct=sl_pct, 
+                    take_profit_pct=tp_pct
+                )
+                
+                result = {
+                    "signal_date": signal_date.strftime('%Y-%m-%d %H:%M:%S'),
+                    "result": trade_result["result"],
+                    "pnl_percent": round(trade_result["pnl_percent"] * 100, 2),
+                    "duration_bars": trade_result["duration_bars"]
+                }
             
             results.append(result)
             
