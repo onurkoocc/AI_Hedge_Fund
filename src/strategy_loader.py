@@ -119,7 +119,16 @@ def _validate_condition(condition_str: str) -> bool:
             'bb_lower': [90],
             'bb_mid': [95],
             'bb_upper': [100],
-            'adx': [25]
+            'adx': [25],
+            'macd': [0.5],
+            'macd_signal': [0.4],
+            'macd_histogram': [0.1],
+            'macd_bullish_cross': [False],
+            'macd_bearish_cross': [False],
+            'stoch_rsi_k': [50],
+            'stoch_rsi_d': [45],
+            'stoch_rsi_bullish': [False],
+            'stoch_rsi_bearish': [False]
         })
         
         # Attempt to query - if it doesn't raise an exception, it's valid

@@ -7,8 +7,8 @@ macro data for correlation analysis.
 
 import logging
 import pandas as pd
-from ta.momentum import RSIIndicator
-from ta.trend import EMAIndicator, ADXIndicator
+from ta.momentum import RSIIndicator, StochRSIIndicator
+from ta.trend import EMAIndicator, ADXIndicator, MACD
 from ta.volatility import AverageTrueRange, BollingerBands
 from typing import Dict
 from .utils import standardize_columns
@@ -20,7 +20,9 @@ def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
     """
     Calculate all technical indicators on OHLCV data.
     
-    Adds columns: rsi, ema_200, atr, bb_lower, bb_mid, bb_upper, adx
+    Adds columns: rsi, ema_200, atr, bb_lower, bb_mid, bb_upper, adx,
+                  macd, macd_signal, macd_histogram, macd_bullish_cross, macd_bearish_cross,
+                  stoch_rsi_k, stoch_rsi_d, stoch_rsi_bullish, stoch_rsi_bearish
     
     Args:
         df: DataFrame with standardized OHLCV columns (open, high, low, close, volume)
@@ -60,6 +62,65 @@ def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
         # ADX (14-period)
         adx_indicator = ADXIndicator(high=df['high'], low=df['low'], close=df['close'], window=14)
         df['adx'] = adx_indicator.adx()
+        
+        # MACD (12, 26, 9)
+        if len(df) < 35:
+            logger.warning(f"Insufficient data for MACD calculation: {len(df)} rows (need 35+)")
+        else:
+            macd_indicator = MACD(close=df['close'], window_fast=12, window_slow=26, window_sign=9)
+            df['macd'] = macd_indicator.macd()
+            df['macd_signal'] = macd_indicator.macd_signal()
+            df['macd_histogram'] = macd_indicator.macd_diff()
+            
+            # Detect MACD crossovers
+            df['macd_bullish_cross'] = (df['macd_histogram'] > 0) & (df['macd_histogram'].shift(1) <= 0)
+            df['macd_bearish_cross'] = (df['macd_histogram'] < 0) & (df['macd_histogram'].shift(1) >= 0)
+            
+            # Log crossover events
+            bullish_crosses = df[df['macd_bullish_cross'] == True]
+            bearish_crosses = df[df['macd_bearish_cross'] == True]
+            
+            for idx in bullish_crosses.index:
+                macd_val = df.loc[idx, 'macd']
+                signal_val = df.loc[idx, 'macd_signal']
+                logger.info(f"MACD bullish crossover detected (MACD: {macd_val:.4f}, Signal: {signal_val:.4f})")
+            
+            for idx in bearish_crosses.index:
+                macd_val = df.loc[idx, 'macd']
+                signal_val = df.loc[idx, 'macd_signal']
+                logger.info(f"MACD bearish crossover detected (MACD: {macd_val:.4f}, Signal: {signal_val:.4f})")
+        
+        # Stochastic RSI (14, 3, 3)
+        if len(df) < 28:
+            logger.warning(f"Insufficient data for StochRSI calculation: {len(df)} rows (need 28+)")
+        else:
+            stoch_rsi_indicator = StochRSIIndicator(close=df['close'], window=14, smooth1=3, smooth2=3)
+            # Scale from 0-1 to 0-100
+            df['stoch_rsi_k'] = stoch_rsi_indicator.stochrsi_k() * 100
+            df['stoch_rsi_d'] = stoch_rsi_indicator.stochrsi_d() * 100
+            
+            # Detect StochRSI crossovers in oversold/overbought zones
+            # Bullish: K crosses above D in oversold zone (<20)
+            k_crosses_above_d = (df['stoch_rsi_k'] > df['stoch_rsi_d']) & (df['stoch_rsi_k'].shift(1) <= df['stoch_rsi_d'].shift(1))
+            df['stoch_rsi_bullish'] = k_crosses_above_d & (df['stoch_rsi_k'] < 20)
+            
+            # Bearish: K crosses below D in overbought zone (>80)
+            k_crosses_below_d = (df['stoch_rsi_k'] < df['stoch_rsi_d']) & (df['stoch_rsi_k'].shift(1) >= df['stoch_rsi_d'].shift(1))
+            df['stoch_rsi_bearish'] = k_crosses_below_d & (df['stoch_rsi_k'] > 80)
+            
+            # Log crossover events
+            bullish_stoch = df[df['stoch_rsi_bullish'] == True]
+            bearish_stoch = df[df['stoch_rsi_bearish'] == True]
+            
+            for idx in bullish_stoch.index:
+                k_val = df.loc[idx, 'stoch_rsi_k']
+                d_val = df.loc[idx, 'stoch_rsi_d']
+                logger.info(f"Bullish StochRSI crossover in oversold (K: {k_val:.4f}, D: {d_val:.4f})")
+            
+            for idx in bearish_stoch.index:
+                k_val = df.loc[idx, 'stoch_rsi_k']
+                d_val = df.loc[idx, 'stoch_rsi_d']
+                logger.info(f"Bearish StochRSI crossover in overbought (K: {k_val:.4f}, D: {d_val:.4f})")
         
         # Standardize all column names again (in case pandas-ta added non-standard names)
         df = standardize_columns(df)

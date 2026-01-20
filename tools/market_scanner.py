@@ -19,6 +19,7 @@ import time
 from pathlib import Path
 from typing import List, Dict, Any
 import sys
+import pandas as pd
 
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -194,7 +195,13 @@ def main():
                             "timestamp": df.index[-1].strftime('%Y-%m-%d %H:%M:%S'),
                             "entry_price": float(df['close'].iloc[-1]),
                             "condition": strategy['condition'],
-                            "params": strategy['params']
+                            "params": strategy['params'],
+                            # Add new indicator values
+                            "macd": float(df['macd'].iloc[-1]) if 'macd' in df.columns and not pd.isna(df['macd'].iloc[-1]) else None,
+                            "macd_signal": float(df['macd_signal'].iloc[-1]) if 'macd_signal' in df.columns and not pd.isna(df['macd_signal'].iloc[-1]) else None,
+                            "macd_histogram": float(df['macd_histogram'].iloc[-1]) if 'macd_histogram' in df.columns and not pd.isna(df['macd_histogram'].iloc[-1]) else None,
+                            "stoch_rsi_k": float(df['stoch_rsi_k'].iloc[-1]) if 'stoch_rsi_k' in df.columns and not pd.isna(df['stoch_rsi_k'].iloc[-1]) else None,
+                            "stoch_rsi_d": float(df['stoch_rsi_d'].iloc[-1]) if 'stoch_rsi_d' in df.columns and not pd.isna(df['stoch_rsi_d'].iloc[-1]) else None,
                         }
                         
                         found_signals.append(signal)
@@ -336,7 +343,15 @@ def generate_markdown_report(
             report += f"- **Stop Loss**: {signal['params']['stop_loss_pct'] * 100:.1f}%\n"
             report += f"- **Take Profit**: {signal['params']['take_profit_pct'] * 100:.1f}%\n"
             report += f"- **R:R Ratio**: {rr_check} {rr_ratio:.1f}:1\n"
-            report += f"- **Win Rate (Last 3)**: {signal['win_rate']:.0f}%\n\n"
+            report += f"- **Win Rate (Last 3)**: {signal['win_rate']:.0f}%\n"
+            
+            # Add new indicator values
+            if signal.get('macd') is not None:
+                report += f"- **MACD**: {signal['macd']:.4f} | Signal: {signal['macd_signal']:.4f} | Histogram: {signal['macd_histogram']:.4f}\n"
+            if signal.get('stoch_rsi_k') is not None:
+                report += f"- **Stochastic RSI**: K: {signal['stoch_rsi_k']:.4f} | D: {signal['stoch_rsi_d']:.4f}\n"
+            
+            report += "\n"
             
             # Add backtest proof table
             if signal['proof']:

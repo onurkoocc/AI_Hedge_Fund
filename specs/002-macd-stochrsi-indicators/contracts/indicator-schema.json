@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Indicator Output Schema",
+  "description": "Schema for MACD and StochRSI indicator output in DataFrame format",
+  "type": "object",
+  "properties": {
+    "macd": {
+      "type": ["number", "null"],
+      "description": "MACD Line value (12-period EMA minus 26-period EMA)"
+    },
+    "macd_signal": {
+      "type": ["number", "null"],
+      "description": "Signal Line (9-period EMA of MACD Line)"
+    },
+    "macd_histogram": {
+      "type": ["number", "null"],
+      "description": "Histogram (MACD Line minus Signal Line)"
+    },
+    "macd_bullish_cross": {
+      "type": "boolean",
+      "description": "True when histogram crosses from ≤0 to >0"
+    },
+    "macd_bearish_cross": {
+      "type": "boolean",
+      "description": "True when histogram crosses from ≥0 to <0"
+    },
+    "stoch_rsi_k": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "%K Line (fast stochastic of RSI, 0-100 range)"
+    },
+    "stoch_rsi_d": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 100,
+      "description": "%D Line (3-period SMA of %K, 0-100 range)"
+    },
+    "stoch_rsi_bullish": {
+      "type": "boolean",
+      "description": "True when K crosses above D in oversold zone (<20)"
+    },
+    "stoch_rsi_bearish": {
+      "type": "boolean",
+      "description": "True when K crosses below D in overbought zone (>80)"
+    }
+  },
+  "required": [
+    "macd",
+    "macd_signal", 
+    "macd_histogram",
+    "macd_bullish_cross",
+    "macd_bearish_cross",
+    "stoch_rsi_k",
+    "stoch_rsi_d",
+    "stoch_rsi_bullish",
+    "stoch_rsi_bearish"
+  ]
+}
