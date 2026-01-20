@@ -1,0 +1,25 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Backtest Result",
+  "type": "object",
+  "properties": {
+    "signal_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "result": {
+      "type": "string",
+      "enum": ["TP", "SL", "Open"]
+    },
+    "pnl_percent": {
+      "type": "number"
+    },
+    "asset": {
+      "type": "string"
+    },
+    "strategy_name": {
+      "type": "string"
+    }
+  },
+  "required": ["signal_date", "result", "pnl_percent"]
+}
