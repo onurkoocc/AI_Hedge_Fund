@@ -9,6 +9,20 @@
 
 Sinyal kalitesini artırmak için hacim (volume) bazlı filtre eklemek. Düşük hacimli dönemlerde üretilen sinyaller genellikle güvenilmez olup "fake breakout" riskini artırır. Bu özellik, belirli bir hacim eşiğinin altındaki sinyalleri filtreleyerek yalnızca yeterli likidite ve piyasa katılımı olan sinyallerin raporlanmasını sağlayacak.
 
+## Clarifications
+
+### Session 2026-01-20
+- Q: Should volume validation use Daily averages or the signal's timeframe (RVOL)? → A: Signal Timeframe (Calculate average over N periods of the *current strategy timeframe*).
+- Q: Which candle should be used for volume validation to prevent repainting? → A: Previous Completed Candle (Validate volume based on the last fully closed bar [i-1]).
+
+## Implementation Decisions
+
+- **Architecture**: Logic will be injected into `tools/market_scanner.py` (scan loop) and `src/analysis.py` (indicator calculation).
+- **Strategy Loading**: `src/strategy_loader.py` regex will be updated to support an optional `Volume Threshold` parameter in strategy definitions.
+- **Reporting**: Signals failing the volume check will NOT be discarded but marked with `volume_status: 'LOW'` and included in the final report (FR-006).
+- **Default Behavior**: If no threshold is specified in Markdown, default to **0.5** (50% of avg). For known "Breakout" types, we will manually update the Markdown to **1.5**.
+- **Data Point**: Volume check uses `df.iloc[-2]` (last completed candle) to align with the "Prevent Repainting" decision, even if the signal check scans `df.tail(1)`.
+
 ## User Scenarios & Testing
 
 ### User Story 1 - Düşük Hacimli Sinyalleri Filtreleme (Priority: P1)
@@ -17,12 +31,12 @@ Trader olarak, düşük hacimli dönemlerde üretilen sinyallerin otomatik olara
 
 **Why this priority**: Düşük hacim = düşük güvenilirlik. En temel kalite filtresi.
 
-**Independent Test**: Hacim 20 günlük ortalamanın %50'sinin altındayken sinyal üretildiğinde, raporda "düşük hacim uyarısı" gösterilmeli veya sinyal reddedilmeli.
+### Independent Test: Hacim, sinyal zaman diliminin (örn: 1h, 4h) 20 periyotluk ortalamasının %50'sinin altındayken sinyal üretildiğinde, raporda "düşük hacim uyarısı" gösterilmeli veya sinyal reddedilmeli.
 
 **Acceptance Scenarios**:
 
-1. **Given** BTC/USDT için mevcut hacim 20-günlük ortalamanın %40'ı, **When** strateji koşulu sağlanır, **Then** sinyal "Low Volume - Filtered" olarak işaretlenir
-2. **Given** ETH/USDT için mevcut hacim 20-günlük ortalamanın %120'si, **When** strateji koşulu sağlanır, **Then** sinyal normal olarak üretilir
+1. **Given** BTC/USDT (1h chart) için mevcut hacim son 20 saatin ortalamasının %40'ı, **When** strateji koşulu sağlanır, **Then** sinyal "Low Volume - Filtered" olarak işaretlenir
+2. **Given** ETH/USDT (4h chart) için mevcut hacim son 20 barın ortalamasının %120'si, **When** strateji koşulu sağlanır, **Then** sinyal normal olarak üretilir
 3. **Given** hafta sonu (düşük likidite), **When** sinyal taranır, **Then** hacim kontrolü yapılır ve uyarı verilir
 
 ---
@@ -81,7 +95,7 @@ Trader olarak, market snapshot raporunda her varlık için hacim durumunu görme
 
 ### Functional Requirements
 
-- **FR-001**: Sistem, her varlık için 20 günlük ortalama hacmi hesaplamalı
+- **FR-001**: Sistem, her v(tamamlanmış son mumun hacmi), arlık için sinyalin üretildiği zaman diliminde 20 periyotluk (bar) ortalama hacmi hesaplamalı
 - **FR-002**: Mevcut hacim ortalama hacmin belirli bir yüzdesinin altındaysa sinyal filtrelenmeli
 - **FR-003**: Varsayılan minimum hacim eşiği: ortalamanın %50'si
 - **FR-004**: Breakout stratejileri için minimum hacim eşiği: ortalamanın %150'si
@@ -107,7 +121,7 @@ Trader olarak, market snapshot raporunda her varlık için hacim durumunu görme
 ## Assumptions
 
 - Volume verisi ccxt'den OHLCV ile birlikte geliyor (mevcut yapı)
-- 20 günlük ortalama yeterli bir referans noktası (daha kısa/uzun dönemler gelecek fazda)
+- 20 periyotluk (SMA) referans noktası, ilgili zaman dilimi için yeterlidir
 - Kullanıcılar başlangıçta varsayılan eşikleri kullanacak
 
 ## Out of Scope
