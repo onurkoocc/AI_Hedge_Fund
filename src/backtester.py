@@ -11,19 +11,21 @@ in the past by backtesting the last 3 times it occurred.
 import logging
 import argparse
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 
-def find_signal_dates(df: pd.DataFrame, condition_str: str) -> List[int]:
+def find_signal_dates(df: pd.DataFrame, condition_str: str, volume_threshold: Optional[float] = None) -> List[int]:
     """
     Find dates where a strategy condition was True.
     
     Args:
         df: DataFrame with technical indicators
         condition_str: Pandas query string (e.g., "rsi < 30 and close > ema_200")
+        volume_threshold: Optional volume filter threshold (T023). If provided, only return
+                         signals where volume ratio >= threshold.
         
     Returns:
         List of integer indices where condition was True (last 3 occurrences)
@@ -40,11 +42,44 @@ def find_signal_dates(df: pd.DataFrame, condition_str: str) -> List[int]:
         # Get the indices (positions) of True values
         signal_indices = df.index.get_indexer(mask)
         
+        # T023-T024: Filter by volume if threshold is provided
+        if volume_threshold is not None and 'volume' in df.columns and 'volume_sma_20' in df.columns:
+            filtered_indices = []
+            filtered_count = 0
+            
+            for idx in signal_indices:
+                # T024: Use iloc[i] for backtest (historical candle is already completed)
+                volume = df.iloc[idx]['volume']
+                avg_volume = df.iloc[idx]['volume_sma_20']
+                
+                # Skip if volume data is invalid
+                if pd.isna(volume) or pd.isna(avg_volume) or avg_volume <= 0:
+                    continue
+                
+                volume_ratio = volume / avg_volume
+                
+                if volume_ratio >= volume_threshold:
+                    filtered_indices.append(idx)
+                else:
+                    filtered_count += 1
+            
+            # T025: Log how many signals were filtered
+            if filtered_count > 0:
+                logger.info(f"Volume filter: {filtered_count} signals removed (threshold: {volume_threshold})")
+            
+            signal_indices = filtered_indices
+        
+        if len(signal_indices) == 0:
+            logger.warning(f"No signals passed volume filter (threshold: {volume_threshold})")
+            return []
+        
         # Return last 3 signals
-        last_3 = signal_indices[-3:].tolist() if len(signal_indices) >= 3 else signal_indices.tolist()
+        last_3 = signal_indices[-3:] if len(signal_indices) >= 3 else signal_indices
         
         if len(last_3) < 3:
             logger.warning(f"Only found {len(last_3)} signals (expected 3)")
+        
+        return list(last_3)
         
         return last_3
         
@@ -154,12 +189,14 @@ def backtest_strategy(
     stop_loss_pct: float = None,
     take_profit_pct: float = None,
     use_dynamic_stop: bool = True,
-    atr_multiplier: float = 1.5
+    atr_multiplier: float = 1.5,
+    volume_threshold: float = None  # T026: Accept volume_threshold parameter
 ) -> List[Dict[str, Any]]:
     """
     Backtest a strategy by finding last 3 signals and simulating each trade.
     
     Supports both legacy percentage-based and dynamic ATR-based risk management.
+    Also supports volume filtering to exclude low-volume signals from backtest.
     
     This is the main "proof engine" function.
     
@@ -170,6 +207,7 @@ def backtest_strategy(
         take_profit_pct: Take profit percentage (default: None, uses dynamic if available)
         use_dynamic_stop: Use ATR-based dynamic stop-loss (default: True)
         atr_multiplier: Multiplier for ATR in dynamic mode (default: 1.5)
+        volume_threshold: Minimum volume ratio to include signal (T026). Default: None (no filter)
         
     Returns:
         List of backtest results matching backtest-schema.json format with risk parameters
@@ -185,8 +223,8 @@ def backtest_strategy(
             logger.warning("ATR column missing, falling back to percentage-based stop")
             use_dynamic_stop = False
         
-        # Find signal dates
-        signal_indices = find_signal_dates(df, condition_str)
+        # Find signal dates (T026: pass volume_threshold for filtering)
+        signal_indices = find_signal_dates(df, condition_str, volume_threshold=volume_threshold)
         
         if not signal_indices:
             logger.info("No signals found to backtest")

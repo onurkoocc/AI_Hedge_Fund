@@ -111,6 +111,7 @@ Each strategy is defined with:
 - Take Profit: 1.5x ATR above breakout (volatility-adjusted)
 - Position Size: 2.5% of capital at risk
 - ATR Multiplier: 2.0 (wider stops for momentum breakouts)
+- Volume Threshold: 1.5 (require 150% of avg volume for breakout confirmation)
 
 **Macro Filter**: Positive sentiment score (> 0.3) and S&P rising
 

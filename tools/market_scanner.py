@@ -17,7 +17,7 @@ import logging
 import argparse
 import time
 from pathlib import Path
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import sys
 import pandas as pd
 
@@ -31,6 +31,84 @@ from src.backtester import backtest_strategy
 from src.strategy_loader import load_strategies
 
 logger = logging.getLogger(__name__)
+
+# Default volume threshold (FR-003)
+DEFAULT_VOLUME_THRESHOLD = 0.5
+# High volume threshold for confirmation (FR-004, FR-007)
+HIGH_VOLUME_THRESHOLD = 1.5
+
+
+def calculate_volume_metrics(df: pd.DataFrame, strategy: dict) -> Optional[dict]:
+    """
+    Calculate volume metrics for signal filtering (T006-T009).
+    
+    Uses completed candle (iloc[-2]) to prevent repainting.
+    
+    Args:
+        df: DataFrame with OHLCV and volume_sma_20
+        strategy: Strategy dictionary with optional volume_threshold param
+        
+    Returns:
+        Dictionary with volume metrics or None if unavailable
+    """
+    try:
+        # Check if volume data is available
+        if 'volume' not in df.columns or 'volume_sma_20' not in df.columns:
+            logger.warning("Volume data not available for filtering")
+            return None
+        
+        # T006: Extract volume from completed candle (iloc[-2])
+        if len(df) < 2:
+            logger.warning("Insufficient data for volume check")
+            return None
+        
+        current_volume = float(df['volume'].iloc[-2])
+        avg_volume = float(df['volume_sma_20'].iloc[-2])
+        
+        # T032: Handle zero/missing volume edge case
+        if current_volume <= 0 or pd.isna(current_volume):
+            logger.error(f"Invalid volume data: current_volume={current_volume}")
+            return {
+                'current_volume': 0,
+                'avg_volume_20d': avg_volume if not pd.isna(avg_volume) else 0,
+                'volume_ratio': 0,
+                'volume_status': 'INVALID'
+            }
+        
+        if avg_volume <= 0 or pd.isna(avg_volume):
+            logger.warning(f"Invalid avg volume: avg_volume={avg_volume}")
+            return {
+                'current_volume': current_volume,
+                'avg_volume_20d': 0,
+                'volume_ratio': 0,
+                'volume_status': 'N/A'
+            }
+        
+        # T007: Calculate volume ratio
+        volume_ratio = current_volume / avg_volume
+        
+        # T008: Apply threshold check (default 0.5 or strategy-specific)
+        volume_threshold = strategy.get('params', {}).get('volume_threshold', DEFAULT_VOLUME_THRESHOLD)
+        
+        # Determine volume status
+        if volume_ratio < volume_threshold:
+            volume_status = 'LOW'
+        elif volume_ratio >= HIGH_VOLUME_THRESHOLD:
+            volume_status = 'HIGH'
+        else:
+            volume_status = 'NORMAL'
+        
+        return {
+            'current_volume': current_volume,
+            'avg_volume_20d': avg_volume,
+            'volume_ratio': volume_ratio,
+            'volume_status': volume_status,
+            'threshold_used': volume_threshold
+        }
+        
+    except Exception as e:
+        logger.error(f"Error calculating volume metrics: {e}")
+        return None
 
 
 def main():
@@ -81,6 +159,9 @@ def main():
                 df = fetch_crypto_data(symbol, days=args.days)
                 if not df.empty:
                     crypto_data[symbol] = df
+                    # T028: Warn if asset has < 20 bars (can't calculate full SMA)
+                    if len(df) < 20:
+                        logger.warning(f"⚠ {symbol}: Only {len(df)} bars of data - volume SMA may be incomplete")
                 else:
                     logger.warning(f"⚠ Skipping {symbol} (no data)")
             except Exception as e:
@@ -191,6 +272,9 @@ def main():
                         entry_price = float(df['close'].iloc[-1])
                         atr_value = float(df['atr'].iloc[-1]) if 'atr' in df.columns and not pd.isna(df['atr'].iloc[-1]) else 0.0
                         
+                        # T006-T009: Volume Filter - Extract volume from completed candle (iloc[-2])
+                        volume_metrics = calculate_volume_metrics(df, strategy)
+                        
                         # T014: Calculate dynamic stop/TP using ATR
                         risk_levels = calculate_risk_levels(
                             entry_price=entry_price,
@@ -227,10 +311,14 @@ def main():
                             "macd_histogram": float(df['macd_histogram'].iloc[-1]) if 'macd_histogram' in df.columns and not pd.isna(df['macd_histogram'].iloc[-1]) else None,
                             "stoch_rsi_k": float(df['stoch_rsi_k'].iloc[-1]) if 'stoch_rsi_k' in df.columns and not pd.isna(df['stoch_rsi_k'].iloc[-1]) else None,
                             "stoch_rsi_d": float(df['stoch_rsi_d'].iloc[-1]) if 'stoch_rsi_d' in df.columns and not pd.isna(df['stoch_rsi_d'].iloc[-1]) else None,
+                            # T009: Add volume_metrics to signal object
+                            "volume_metrics": volume_metrics,
                         }
                         
                         found_signals.append(signal)
-                        logger.info(f"  ✓ SIGNAL FOUND: {symbol} @ ${entry_price:.2f} | ATR: {atr_value:.2f} | Stop: ${risk_levels['stop_loss']:.2f} ({risk_levels['stop_pct']:.2%}) | TP: ${risk_levels['take_profit']:.2f} | R:R: {risk_levels['rr_ratio']:.2f}")
+                        # Updated log to include volume status
+                        volume_status_str = f" | Vol: {volume_metrics['volume_status']}" if volume_metrics else ""
+                        logger.info(f"  ✓ SIGNAL FOUND: {symbol} @ ${entry_price:.2f} | ATR: {atr_value:.2f} | Stop: ${risk_levels['stop_loss']:.2f} ({risk_levels['stop_pct']:.2%}) | TP: ${risk_levels['take_profit']:.2f} | R:R: {risk_levels['rr_ratio']:.2f}{volume_status_str}")
                 
                 except Exception as e:
                     logger.error(f"  ✗ Error scanning {strategy['name']} on {symbol}: {e}")
@@ -289,11 +377,27 @@ def main():
         logger.info("STEP 5: REPORT GENERATION")
         logger.info("-" * 70)
         
+        # T021-T022: Collect volume summary for all assets
+        volume_summary = {}
+        for symbol, df in crypto_data.items():
+            if 'volume' in df.columns and 'volume_sma_20' in df.columns and len(df) >= 2:
+                current_volume = float(df['volume'].iloc[-2])
+                avg_volume = float(df['volume_sma_20'].iloc[-2])
+                if avg_volume > 0 and not pd.isna(avg_volume):
+                    ratio = current_volume / avg_volume
+                    volume_summary[symbol] = {
+                        'current': current_volume,
+                        'avg': avg_volume,
+                        'ratio': ratio,
+                        'status': 'LOW' if ratio < 0.5 else 'HIGH' if ratio > 1.5 else 'NORMAL'
+                    }
+        
         report_content = generate_markdown_report(
             found_signals,
             sentiment_score,
             get_timestamp(),
-            args.symbols
+            args.symbols,
+            volume_summary  # T021: Pass volume summary to report
         )
         
         # Write report to file
@@ -326,7 +430,8 @@ def generate_markdown_report(
     signals: List[Dict[str, Any]],
     sentiment_score: float,
     timestamp: str,
-    scanned_symbols: List[str]
+    scanned_symbols: List[str],
+    volume_summary: Optional[Dict[str, Dict]] = None  # T021: Add volume summary parameter
 ) -> str:
     """
     Generate a Markdown report for LLM consumption.
@@ -336,6 +441,7 @@ def generate_markdown_report(
         sentiment_score: Sentiment score from -1 to +1
         timestamp: Generation timestamp
         scanned_symbols: List of symbols that were scanned
+        volume_summary: Dictionary of volume metrics per asset (T021)
         
     Returns:
         Markdown-formatted report string
@@ -352,6 +458,31 @@ def generate_markdown_report(
 
 """
     
+    # T021-T022: Add Volume Summary section
+    if volume_summary:
+        report += "## 📊 Volume Summary\n\n"
+        report += "| Asset | Volume vs Avg | Status |\n"
+        report += "|-------|---------------|--------|\n"
+        
+        for symbol in scanned_symbols:
+            if symbol in volume_summary:
+                vol = volume_summary[symbol]
+                ratio_pct = vol['ratio'] * 100
+                status = vol['status']
+                
+                if status == 'LOW':
+                    status_badge = "⚠️ Low"
+                elif status == 'HIGH':
+                    status_badge = "✓ High"
+                else:
+                    status_badge = "Normal"
+                
+                report += f"| {symbol} | {ratio_pct:.0f}% | {status_badge} |\n"
+            else:
+                report += f"| {symbol} | N/A | ⚠️ No Data |\n"
+        
+        report += "\n---\n\n"
+    
     # Add signals section
     if signals:
         report += f"## 🎯 Trading Signals ({len(signals)} Found)\n\n"
@@ -367,6 +498,28 @@ def generate_markdown_report(
             report += f"- **Type**: {signal['strategy_type']}\n"
             report += f"- **Entry Price**: ${signal['entry_price']:.2f}\n"
             report += f"- **Timestamp**: {signal['timestamp']}\n"
+            
+            # T010-T012: Volume Status in report
+            volume_metrics = signal.get('volume_metrics')
+            if volume_metrics:
+                volume_status = volume_metrics.get('volume_status', 'N/A')
+                volume_ratio = volume_metrics.get('volume_ratio', 0)
+                ratio_pct = volume_ratio * 100
+                
+                # T011: Add badge styling for volume status
+                if volume_status == 'LOW':
+                    volume_badge = f"⚠️ Low Volume ({ratio_pct:.0f}% of Avg)"
+                elif volume_status == 'HIGH':
+                    volume_badge = f"✓ Volume Confirmed ({ratio_pct:.0f}% of Avg)"
+                elif volume_status == 'INVALID':
+                    volume_badge = "❌ Invalid Volume Data"
+                elif volume_status == 'N/A':
+                    volume_badge = "⚠️ Volume N/A"
+                else:
+                    volume_badge = f"Normal ({ratio_pct:.0f}% of Avg)"
+                
+                # T012: Display volume ratio percentage
+                report += f"- **Volume Status**: {volume_badge}\n"
             
             # Dynamic stop-loss info
             if 'atr_value' in signal:

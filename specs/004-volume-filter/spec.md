@@ -21,7 +21,10 @@ Sinyal kalitesini artırmak için hacim (volume) bazlı filtre eklemek. Düşük
 - **Strategy Loading**: `src/strategy_loader.py` regex will be updated to support an optional `Volume Threshold` parameter in strategy definitions.
 - **Reporting**: Signals failing the volume check will NOT be discarded but marked with `volume_status: 'LOW'` and included in the final report (FR-006).
 - **Default Behavior**: If no threshold is specified in Markdown, default to **0.5** (50% of avg). For known "Breakout" types, we will manually update the Markdown to **1.5**.
-- **Data Point**: Volume check uses `df.iloc[-2]` (last completed candle) to align with the "Prevent Repainting" decision, even if the signal check scans `df.tail(1)`.
+- **Data Point (Live Scanning)**: Volume check uses `df.iloc[-2]` (last completed candle) to align with the "Prevent Repainting" decision.
+- **Data Point (Backtesting)**: Volume check uses `df.iloc[i]` (signal candle itself) since all historical candles are already completed.
+- **Minimum Data**: If asset has < 20 bars, calculate with available data (minimum 5 bars) and log warning. If < 5 bars, skip volume check and mark as "Volume N/A".
+- **Zero Volume Handling**: If volume data is zero or missing, reject the signal and log error.
 
 ## User Scenarios & Testing
 
@@ -114,9 +117,9 @@ Trader olarak, market snapshot raporunda her varlık için hacim durumunu görme
 ### Measurable Outcomes
 
 - **SC-001**: Tüm sinyaller için hacim durumu raporlanabilmeli
-- **SC-002**: Düşük hacimli sinyallerin filtrelenmesiyle backtest false positive oranı azalmalı
-- **SC-003**: Volume confirmed breakout sinyallerinin win rate'i normal breakout'lardan yüksek olmalı
-- **SC-004**: Market scanner çalışma süresi %5'ten fazla artmamalı
+- **SC-002**: Düşük hacimli sinyallerin filtrelenmesiyle backtest false positive oranı azalmalı *(observational metric - to be measured post-implementation)*
+- **SC-003**: Volume confirmed breakout sinyallerinin win rate'i normal breakout'lardan yüksek olmalı *(observational metric - to be measured post-implementation)*
+- **SC-004**: Market scanner çalışma süresi %5'ten fazla artmamalı *(measurable: run scanner 3x before/after, compare average)*
 
 ## Assumptions
 

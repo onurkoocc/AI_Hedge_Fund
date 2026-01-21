@@ -1,6 +1,6 @@
 # AI Hedge Fund - Geliştirme İlerleme Takibi
 
-**Son Güncelleme**: 2026-01-20  
+**Son Güncelleme**: 2026-01-21  
 **Proje Durumu**: Aktif Geliştirme
 
 ---
@@ -11,8 +11,16 @@
 |-----|--------|---------|-------|---------|
 | 1 | `002-macd-stochrsi-indicators` | MACD ve Stochastic RSI İndikatörleri | 📝 Spec Ready | 🔴 Yüksek |
 | 2 | `003-atr-dynamic-stoploss` | ATR-Bazlı Dinamik Stop-Loss | 📝 Spec Ready | 🔴 Yüksek |
-| 3 | `004-volume-filter` | Volume Filtresi | 📝 Spec Ready | 🔴 Yüksek |
+| 3 | `004-volume-filter` | Volume Filtresi | ✅ Implemented | 🟢 Tamamlandı |
 | 4 | `005-multi-timeframe-analysis` | Multi-Timeframe Analiz (1H+4H+1D) | 📝 Spec Ready | 🟡 Orta |
+
+### 004-volume-filter Özeti
+- **volume_sma_20** hesaplama eklendi (`src/analysis.py`)
+- **Volume filtresi** sinyal tarama döngüsüne entegre edildi (`tools/market_scanner.py`)
+- **Strateji bazlı volume threshold** desteği eklendi (`src/strategy_loader.py`)
+- **Volume Summary** rapor bölümü eklendi
+- **Backtest** volume filtresi desteği eklendi (`src/backtester.py`)
+- Breakout stratejisi için volume_threshold=1.5 ayarlandı (`specs/04_strategies.md`)
 
 ### Sonraki Adımlar
 Her faz için sırayla `/speckit.plan` komutu çalıştırılarak implementasyon planı oluşturulabilir.

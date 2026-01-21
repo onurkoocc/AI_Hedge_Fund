@@ -122,6 +122,25 @@ def calculate_indicators(df: pd.DataFrame) -> pd.DataFrame:
                 d_val = df.loc[idx, 'stoch_rsi_d']
                 logger.info(f"Bearish StochRSI crossover in overbought (K: {k_val:.4f}, D: {d_val:.4f})")
         
+        # Volume SMA (20-period) for volume filter feature
+        # T003: Calculate 20-period simple moving average of volume
+        if 'volume' in df.columns:
+            df['volume_sma_20'] = df['volume'].rolling(20).mean()
+            
+            # T004: Handle edge cases - count non-NaN values
+            valid_volume_bars = df['volume'].notna().sum()
+            if valid_volume_bars < 20:
+                if valid_volume_bars >= 5:
+                    logger.warning(f"Insufficient data for full volume SMA: {valid_volume_bars} bars (need 20+). Using available data.")
+                else:
+                    logger.warning(f"Critical: Only {valid_volume_bars} volume bars available (need minimum 5). Volume filter may be unreliable.")
+            
+            # T005: Log volume calculation completion
+            non_nan_sma = df['volume_sma_20'].notna().sum()
+            logger.info(f"Volume SMA-20 calculated: {non_nan_sma} valid data points")
+        else:
+            logger.warning("Volume column not found - volume filter will be unavailable")
+        
         # Standardize all column names again (in case pandas-ta added non-standard names)
         df = standardize_columns(df)
         

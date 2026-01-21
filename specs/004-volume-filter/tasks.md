@@ -14,20 +14,20 @@ This document breaks down the Volume Filter implementation into executable, inde
 
 **Suggested MVP Scope**: User Story 1 only - basic volume filtering with default thresholds.
 
-## Phase 1: Setup
+## Phase 1: Setup ✅
 
 **Goal**: Initialize project structure and dependencies.
 
-- [ ] T001 Verify project dependencies (pandas, ccxt, pandas-ta) are installed per requirements.txt
-- [ ] T002 Validate existing test infrastructure works (run existing tools to establish baseline)
+- [x] T001 Verify project dependencies (pandas, ccxt, pandas-ta) are installed per requirements.txt
+- [x] T002 Validate existing test infrastructure works (run existing tools to establish baseline)
 
-## Phase 2: Foundational
+## Phase 2: Foundational ✅
 
 **Goal**: Core volume calculation infrastructure (blocks all user stories).
 
-- [ ] T003 Add volume_sma_20 calculation in src/analysis.py calculate_indicators function
-- [ ] T004 Handle edge cases for volume SMA (NaN at start, insufficient data < 20 bars)
-- [ ] T005 Add logging for volume calculation (info level when computed, warning if insufficient data)
+- [x] T003 Add volume_sma_20 calculation in src/analysis.py calculate_indicators function: `df['volume_sma_20'] = df['volume'].rolling(20).mean()`
+- [x] T004 Handle edge cases for volume SMA (NaN at start, insufficient data < 20 bars, minimum 5 bars required)
+- [x] T005 Add logging for volume calculation in src/analysis.py (info level when computed, warning if insufficient data < 20 bars)
 
 ## Phase 3: User Story 1 - Düşük Hacimli Sinyalleri Filtreleme (P1)
 
@@ -37,16 +37,16 @@ This document breaks down the Volume Filter implementation into executable, inde
 
 ### Signal Scanning Enhancement
 
-- [ ] T006 [US1] Extract volume data from completed candle (iloc[-2]) in tools/market_scanner.py scan loop
-- [ ] T007 [US1] Calculate volume_ratio = current_volume / volume_sma_20 in tools/market_scanner.py
-- [ ] T008 [US1] Apply default threshold check (0.5) and tag signal with volume_status field
-- [ ] T009 [US1] Add volume_metrics dictionary to signal object (current_volume, avg_volume_20d, volume_ratio, volume_status)
+- [x] T006 [US1] Extract volume data from completed candle (iloc[-2]) in tools/market_scanner.py scan loop
+- [x] T007 [US1] Calculate volume_ratio = current_volume / volume_sma_20 in tools/market_scanner.py
+- [x] T008 [US1] Apply default threshold check (0.5) and tag signal with volume_status field
+- [x] T009 [US1] Add volume_metrics dictionary to signal object (current_volume, avg_volume_20d, volume_ratio, volume_status)
 
 ### Reporting
 
-- [ ] T010 [P] [US1] Update generate_markdown_report in tools/market_scanner.py to include Volume Status column
-- [ ] T011 [P] [US1] Add "Low Volume ⚠️" badge styling for filtered signals in report
-- [ ] T012 [P] [US1] Display volume ratio percentage in report (e.g., "45% of Avg")
+- [x] T010 [P] [US1] Update generate_markdown_report in tools/market_scanner.py to include Volume Status column
+- [x] T011 [P] [US1] Add "Low Volume ⚠️" badge styling for filtered signals in report
+- [x] T012 [P] [US1] Display volume ratio percentage in report (e.g., "45% of Avg")
 
 ## Phase 4: User Story 2 - Volume Spike Teyidi (P1)
 
@@ -54,9 +54,9 @@ This document breaks down the Volume Filter implementation into executable, inde
 
 **Independent Test**: Simulate or find a breakout signal with volume > 1.5x average - should show "Volume Confirmed ✓".
 
-- [ ] T013 [P] [US2] Add HIGH volume status detection (ratio > 1.5) in tools/market_scanner.py
-- [ ] T014 [P] [US2] Add "Volume Confirmed ✓" badge for HIGH status signals in report
-- [ ] T015 [US2] Add logic to detect "Weak Volume" for breakout signals (volume < avg) in tools/market_scanner.py
+- [x] T013 [P] [US2] Add HIGH volume status detection (ratio > 1.5, per FR-004/FR-007) in tools/market_scanner.py
+- [x] T014 [P] [US2] Add "Volume Confirmed ✓" badge for HIGH status signals in report
+- [x] T015 [US2] Add logic to detect "Weak Volume" for breakout signals (volume < avg) in tools/market_scanner.py
 
 ## Phase 5: User Story 3 - Strateji Bazında Volume Eşiği (P2)
 
@@ -66,14 +66,14 @@ This document breaks down the Volume Filter implementation into executable, inde
 
 ### Strategy Loading
 
-- [ ] T016 [US3] Update regex pattern in src/strategy_loader.py to capture optional Volume Threshold parameter
-- [ ] T017 [US3] Add volume_threshold to strategy params dict with default 0.5 if not specified
-- [ ] T018 [US3] Add test logging to confirm volume_threshold parsed correctly
+- [x] T016 [US3] Update regex pattern in src/strategy_loader.py to capture optional Volume Threshold parameter
+- [x] T017 [US3] Add volume_threshold to strategy params dict with default 0.5 if not specified
+- [x] T018 [US3] Add test logging to confirm volume_threshold parsed correctly
 
 ### Integration
 
-- [ ] T019 [US3] Update market_scanner.py to use strategy-specific volume_threshold instead of hardcoded 0.5
-- [ ] T020 [P] [US3] Update specs/04_strategies.md to add Volume Threshold parameter to Breakout strategies (set to 1.5)
+- [x] T019 [US3] Update market_scanner.py to use strategy-specific volume_threshold instead of hardcoded 0.5
+- [x] T020 [P] [US3] Update specs/04_strategies.md to add Volume Threshold parameter to Breakout strategies (set to 1.5)
 
 ## Phase 6: User Story 4 - Volume Raporu (P3)
 
@@ -81,8 +81,8 @@ This document breaks down the Volume Filter implementation into executable, inde
 
 **Independent Test**: Run scanner on multiple assets - report should show volume metrics for all.
 
-- [ ] T021 [P] [US4] Add Volume Summary section to markdown report showing volume status for all scanned assets
-- [ ] T022 [P] [US4] Display "Volume vs Avg" percentage for each asset in summary table
+- [x] T021 [P] [US4] Add Volume Summary section to markdown report showing volume status for all scanned assets
+- [x] T022 [P] [US4] Display "Volume vs Avg" percentage for each asset in summary table
 
 ## Phase 7: Backtest Integration
 
@@ -90,20 +90,21 @@ This document breaks down the Volume Filter implementation into executable, inde
 
 **Independent Test**: Run backtest on a strategy with volume filter - should show fewer historical signals (filtered out low-volume ones).
 
-- [ ] T023 [P] Add volume validation in src/backtester.py find_signal_dates function
-- [ ] T024 Filter signal indices by volume check (use iloc[i] for completed historical candle)
-- [ ] T025 Add logging to show how many signals were filtered by volume check
-- [ ] T026 Update backtest_strategy to accept and pass volume_threshold parameter
+- [x] T023 [P] Add volume validation in src/backtester.py find_signal_dates function
+- [x] T024 Filter signal indices by volume check (use iloc[i] for completed historical candle)
+- [x] T025 Add logging to show how many signals were filtered by volume check
+- [x] T026 Update backtest_strategy to accept and pass volume_threshold parameter
 
 ## Phase 8: Polish & Cross-Cutting
 
 **Goal**: Edge cases, error handling, and documentation.
 
-- [ ] T027 [P] Add error handling for missing volume data in src/analysis.py
-- [ ] T028 [P] Add warning log when asset has < 20 bars of data (can't calculate full SMA)
-- [ ] T029 Test market scanner end-to-end with volume filter enabled
-- [ ] T030 Verify performance impact is < 5% (SC-004) by comparing scan times before/after
-- [ ] T031 Update PROJECT_BLUEPRINT.md or progress.md to mark 004-volume-filter as implemented
+- [x] T027 [P] Add error handling for missing volume data in src/analysis.py
+- [x] T028 [P] Add warning log in tools/market_scanner.py when asset has < 20 bars of data (can't calculate full SMA)
+- [x] T029 Test market scanner end-to-end with volume filter enabled
+- [x] T032 [P] Handle zero/missing volume edge case: reject signal and log error per spec Implementation Decisions
+- [x] T030 Verify performance impact is < 5% (SC-004) by comparing scan times before/after (5.9s scan time, no measurable impact)
+- [x] T031 Update PROJECT_BLUEPRINT.md or progress.md to mark 004-volume-filter as implemented
 
 ## Dependencies
 
@@ -150,7 +151,7 @@ Phase 8 (Polish)
 
 ## Task Completion Summary
 
-- **Total Tasks**: 31
+- **Total Tasks**: 32
 - **Setup**: 2 tasks
 - **Foundational**: 3 tasks (blocking)
 - **User Story 1** (P1): 7 tasks (MVP)
@@ -158,7 +159,7 @@ Phase 8 (Polish)
 - **User Story 3** (P2): 5 tasks
 - **User Story 4** (P3): 2 tasks
 - **Backtest Integration**: 4 tasks
-- **Polish**: 5 tasks
+- **Polish**: 6 tasks (including T032)
 
 ## Format Validation
 

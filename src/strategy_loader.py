@@ -52,8 +52,9 @@ def load_strategies(specs_dir: str = "specs") -> List[Dict[str, Any]]:
         strategies = []
         
         # Extract each strategy section (starts with "### " followed by a number)
-        # Updated pattern to optionally capture ATR Multiplier
-        strategy_pattern = r'### \d+\.\s+(.+?)\n\n\*\*Type\*\*:\s*(.+?)\n.*?\n\n\*\*Entry Condition\*\*:\s*\n```python\n"(.+?)"\n```.*?\n\*\*Parameters\*\*:\s*\n-\s+Stop Loss:\s*(\d+)%.*?\n-\s+Take Profit:\s*(\d+\.?\d*)%.*?\n-\s+Position Size:\s*([\d.]+)%(?:.*?\n-\s+ATR Multiplier:\s*([\d.]+))?'
+        # T016: Updated pattern - more flexible to handle different parameter formats
+        # Match strategy header and entry condition, then extract parameters
+        strategy_pattern = r'### \d+\.\s+(.+?)\n\n\*\*Type\*\*:\s*(.+?)\n.*?\n\n\*\*Entry Condition\*\*:\s*\n```python\n"(.+?)"\n```(.*?)\n---'
         
         matches = re.finditer(strategy_pattern, content, re.DOTALL)
         
@@ -61,10 +62,32 @@ def load_strategies(specs_dir: str = "specs") -> List[Dict[str, Any]]:
             name = match.group(1).strip()
             strategy_type = match.group(2).strip()
             condition = match.group(3).strip()
-            stop_loss = float(match.group(4)) / 100  # Convert to decimal
-            take_profit = float(match.group(5)) / 100
-            position_size = float(match.group(6)) / 100
-            atr_multiplier = float(match.group(7)) if match.group(7) else 1.5  # Default 1.5
+            params_block = match.group(4)  # Everything after entry condition until ---
+            
+            # Extract stop loss - look for number followed by %
+            stop_loss_match = re.search(r'Stop Loss[^\n]*?(\d+)%', params_block)
+            stop_loss = float(stop_loss_match.group(1)) / 100 if stop_loss_match else 0.02
+            
+            # Extract take profit
+            take_profit_match = re.search(r'Take Profit[^\n]*?(\d+\.?\d*)%', params_block)
+            take_profit = float(take_profit_match.group(1)) / 100 if take_profit_match else 0.04
+            
+            # Extract position size
+            position_size_match = re.search(r'Position Size:\s*([\d.]+)%', params_block)
+            position_size = float(position_size_match.group(1)) / 100 if position_size_match else 0.02
+            
+            # Look for ATR Multiplier
+            atr_match = re.search(r'ATR Multiplier:\s*([\d.]+)', params_block)
+            atr_multiplier = float(atr_match.group(1)) if atr_match else 1.5
+            
+            # T017: Look for Volume Threshold
+            vol_match = re.search(r'Volume Threshold:\s*([\d.]+)', params_block)
+            volume_threshold = float(vol_match.group(1)) if vol_match else 0.5
+            
+            # Skip if position size is 0 (likely failed to parse)
+            if position_size == 0:
+                logger.warning(f"Skipping strategy '{name}': could not parse Position Size")
+                continue
             
             # Validate condition string
             if not _validate_condition(condition):
@@ -79,12 +102,14 @@ def load_strategies(specs_dir: str = "specs") -> List[Dict[str, Any]]:
                     "stop_loss_pct": stop_loss,
                     "take_profit_pct": take_profit,
                     "position_size_pct": position_size,
-                    "atr_multiplier": atr_multiplier  # T024: Added
+                    "atr_multiplier": atr_multiplier,  # T024: Added
+                    "volume_threshold": volume_threshold  # T017: Added
                 }
             }
             
             strategies.append(strategy)
-            logger.info(f"  ✓ Loaded strategy: {name} ({strategy_type}) [ATR Multiplier: {atr_multiplier}]")
+            # T018: Add test logging to confirm volume_threshold parsed
+            logger.info(f"  ✓ Loaded strategy: {name} ({strategy_type}) [ATR: {atr_multiplier}, Vol Threshold: {volume_threshold}]")
         
         if not strategies:
             logger.warning("No strategies parsed from file")
